@@ -46,6 +46,77 @@
   color: var(--color-muted);
 }
 
+.setupForm {
+  display: grid;
+  gap: 12px;
+}
+
+.fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+
+.label {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.playerGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.playerField {
+  display: grid;
+  gap: 6px;
+}
+
+.input {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 8px 10px;
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.radioRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.optionLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.errorText {
+  margin: 0;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+.playerOrderList {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+}
+
 .actionRow {
   display: flex;
   gap: 8px;
@@ -54,6 +125,12 @@
 .button {
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: transparent;
+  background: var(--color-surface);
+  color: var(--color-text);
   padding: 8px 12px;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }

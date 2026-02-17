@@ -1,15 +1,90 @@
-import type { GameScreen } from "@/game/models";
+"use client";
+
+import {
+  MAX_PLAYERS,
+  MIN_PLAYERS,
+  ROUND_COUNT_PRESETS
+} from "@/game/constants";
+import type { GameScreen, GameState } from "@/game/models";
+import {
+  buildSetupConfig,
+  createDefaultSetupState,
+  createInitialGameState,
+  CUSTOM_ROUND_COUNT,
+  resizePlayerNames,
+  validateSetup
+} from "@/state";
+import type { ChangeEvent, FormEvent } from "react";
+import { useMemo, useState } from "react";
 import styles from "./AppShell.module.css";
 
-const ACTIVE_SCREEN: GameScreen = "setup";
+const PLAYER_COUNT_OPTIONS = Array.from(
+  { length: MAX_PLAYERS - MIN_PLAYERS + 1 },
+  (_, index) => MIN_PLAYERS + index
+);
 
 export default function AppShell() {
+  const [setupState, setSetupState] = useState(createDefaultSetupState);
+  const [gameState, setGameState] = useState<GameState | null>(null);
+
+  const setupValidation = useMemo(
+    () => validateSetup(setupState),
+    [setupState]
+  );
+
+  const activeScreen: GameScreen = gameState ? gameState.status.screen : "setup";
+
+  function handlePlayerCountChange(event: ChangeEvent<HTMLSelectElement>) {
+    const nextCount = Number.parseInt(event.target.value, 10);
+    if (Number.isNaN(nextCount)) {
+      return;
+    }
+
+    setSetupState((currentState) => ({
+      ...currentState,
+      playerNames: resizePlayerNames(currentState.playerNames, nextCount)
+    }));
+  }
+
+  function handlePlayerNameChange(index: number, nextValue: string) {
+    setSetupState((currentState) => {
+      const nextPlayerNames = [...currentState.playerNames];
+      nextPlayerNames[index] = nextValue;
+      return {
+        ...currentState,
+        playerNames: nextPlayerNames
+      };
+    });
+  }
+
+  function handleRoundCountChange(event: ChangeEvent<HTMLInputElement>) {
+    const optionValue = event.target.value;
+    setSetupState((currentState) => ({
+      ...currentState,
+      roundCountOption:
+        optionValue === CUSTOM_ROUND_COUNT
+          ? CUSTOM_ROUND_COUNT
+          : (Number.parseInt(optionValue, 10) as (typeof ROUND_COUNT_PRESETS)[number])
+    }));
+  }
+
+  function handleStartGame(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const setupConfig = buildSetupConfig(setupState);
+    if (!setupConfig) {
+      return;
+    }
+
+    setGameState(createInitialGameState(setupConfig));
+  }
+
   return (
     <main className={styles.page}>
       <header className={styles.header}>
         <h1 className={styles.title}>Bank Dice Game</h1>
         <p className={styles.subtitle}>
-          Phase 1 app shell with setup, gameplay, and end-of-game containers.
+          Configure players and options, then lock setup to begin gameplay.
         </p>
       </header>
 
@@ -17,46 +92,262 @@ export default function AppShell() {
         <section
           className={styles.section}
           aria-labelledby="setup-heading"
-          hidden={ACTIVE_SCREEN !== "setup"}
+          hidden={activeScreen !== "setup"}
         >
           <h2 id="setup-heading" className={styles.sectionHeading}>
             Setup
           </h2>
-          <p className={styles.sectionCopy}>
-            Player inputs and game options will be rendered here.
-          </p>
-          <div className={styles.actionRow}>
-            <button className={styles.button} type="button" disabled>
-              Start Game
-            </button>
-          </div>
+          <form className={styles.setupForm} onSubmit={handleStartGame} noValidate>
+            <fieldset className={styles.fieldset}>
+              <legend className={styles.legend}>Players</legend>
+              <label className={styles.label} htmlFor="player-count">
+                Player count
+              </label>
+              <select
+                id="player-count"
+                className={styles.input}
+                value={setupState.playerNames.length}
+                onChange={handlePlayerCountChange}
+              >
+                {PLAYER_COUNT_OPTIONS.map((playerCount) => (
+                  <option key={playerCount} value={playerCount}>
+                    {playerCount}
+                  </option>
+                ))}
+              </select>
+              {setupValidation.playerCountError && (
+                <p className={styles.errorText} role="alert">
+                  {setupValidation.playerCountError}
+                </p>
+              )}
+              <div className={styles.playerGrid}>
+                {setupState.playerNames.map((playerName, index) => {
+                  const playerError = setupValidation.playerErrors[index];
+                  const fieldId = `player-name-${index + 1}`;
+                  const errorId = `${fieldId}-error`;
+
+                  return (
+                    <label key={fieldId} className={styles.playerField} htmlFor={fieldId}>
+                      <span className={styles.label}>Player {index + 1}</span>
+                      <input
+                        id={fieldId}
+                        className={styles.input}
+                        type="text"
+                        value={playerName}
+                        onChange={(event) =>
+                          handlePlayerNameChange(index, event.target.value)
+                        }
+                        aria-invalid={Boolean(playerError)}
+                        aria-describedby={playerError ? errorId : undefined}
+                        autoComplete="off"
+                      />
+                      {playerError && (
+                        <span id={errorId} className={styles.errorText} role="alert">
+                          {playerError}
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <fieldset className={styles.fieldset}>
+              <legend className={styles.legend}>Rounds</legend>
+              <div className={styles.radioRow}>
+                {ROUND_COUNT_PRESETS.map((preset) => (
+                  <label key={preset} className={styles.optionLabel}>
+                    <input
+                      type="radio"
+                      name="round-count"
+                      value={preset}
+                      checked={setupState.roundCountOption === preset}
+                      onChange={handleRoundCountChange}
+                    />
+                    <span>{preset} rounds</span>
+                  </label>
+                ))}
+                <label className={styles.optionLabel}>
+                  <input
+                    type="radio"
+                    name="round-count"
+                    value={CUSTOM_ROUND_COUNT}
+                    checked={setupState.roundCountOption === CUSTOM_ROUND_COUNT}
+                    onChange={handleRoundCountChange}
+                  />
+                  <span>Custom</span>
+                </label>
+              </div>
+              <label className={styles.label} htmlFor="custom-round-count">
+                Custom round count
+              </label>
+              <input
+                id="custom-round-count"
+                className={styles.input}
+                type="number"
+                min={1}
+                step={1}
+                value={setupState.customRoundCount}
+                disabled={setupState.roundCountOption !== CUSTOM_ROUND_COUNT}
+                onChange={(event) =>
+                  setSetupState((currentState) => ({
+                    ...currentState,
+                    customRoundCount: event.target.value
+                  }))
+                }
+                aria-invalid={Boolean(setupValidation.roundCountError)}
+                aria-describedby={
+                  setupValidation.roundCountError ? "custom-round-error" : undefined
+                }
+              />
+              {setupValidation.roundCountError && (
+                <p id="custom-round-error" className={styles.errorText} role="alert">
+                  {setupValidation.roundCountError}
+                </p>
+              )}
+            </fieldset>
+
+            <fieldset className={styles.fieldset}>
+              <legend className={styles.legend}>Dice Mode</legend>
+              <div className={styles.radioRow}>
+                <label className={styles.optionLabel}>
+                  <input
+                    type="radio"
+                    name="dice-mode"
+                    value="built-in"
+                    checked={setupState.diceMode === "built-in"}
+                    onChange={() =>
+                      setSetupState((currentState) => ({
+                        ...currentState,
+                        diceMode: "built-in"
+                      }))
+                    }
+                  />
+                  <span>Built-in</span>
+                </label>
+                <label className={styles.optionLabel}>
+                  <input
+                    type="radio"
+                    name="dice-mode"
+                    value="manual"
+                    checked={setupState.diceMode === "manual"}
+                    onChange={() =>
+                      setSetupState((currentState) => ({
+                        ...currentState,
+                        diceMode: "manual"
+                      }))
+                    }
+                  />
+                  <span>Manual input</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset className={styles.fieldset}>
+              <legend className={styles.legend}>Theme</legend>
+              <div className={styles.radioRow}>
+                <label className={styles.optionLabel}>
+                  <input
+                    type="radio"
+                    name="theme"
+                    value="system"
+                    checked={setupState.theme === "system"}
+                    onChange={() =>
+                      setSetupState((currentState) => ({
+                        ...currentState,
+                        theme: "system"
+                      }))
+                    }
+                  />
+                  <span>System</span>
+                </label>
+                <label className={styles.optionLabel}>
+                  <input
+                    type="radio"
+                    name="theme"
+                    value="light"
+                    checked={setupState.theme === "light"}
+                    onChange={() =>
+                      setSetupState((currentState) => ({
+                        ...currentState,
+                        theme: "light"
+                      }))
+                    }
+                  />
+                  <span>Light</span>
+                </label>
+                <label className={styles.optionLabel}>
+                  <input
+                    type="radio"
+                    name="theme"
+                    value="dark"
+                    checked={setupState.theme === "dark"}
+                    onChange={() =>
+                      setSetupState((currentState) => ({
+                        ...currentState,
+                        theme: "dark"
+                      }))
+                    }
+                  />
+                  <span>Dark</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <div className={styles.actionRow}>
+              <button
+                className={styles.button}
+                type="submit"
+                disabled={!setupValidation.isValid}
+              >
+                Start Game
+              </button>
+            </div>
+          </form>
         </section>
 
         <section
           className={styles.section}
           aria-labelledby="gameplay-heading"
-          hidden={ACTIVE_SCREEN !== "gameplay"}
+          hidden={activeScreen !== "gameplay"}
         >
           <h2 id="gameplay-heading" className={styles.sectionHeading}>
             Gameplay
           </h2>
-          <p className={styles.sectionCopy}>
-            Turn actions, bank total, and scoreboard will be rendered here.
-          </p>
-          <div className={styles.actionRow}>
-            <button className={styles.button} type="button" disabled>
-              Roll
-            </button>
-            <button className={styles.button} type="button" disabled>
-              Bank
-            </button>
-          </div>
+          {gameState && (
+            <>
+              <p className={styles.sectionCopy}>
+                Setup is locked. Player order and settings are now fixed for this game.
+              </p>
+              <p className={styles.sectionCopy}>
+                Round {gameState.round.currentRound} of {gameState.settings.roundCount}
+              </p>
+              <p className={styles.sectionCopy}>
+                Dice mode: {gameState.settings.diceMode} | Theme: {gameState.settings.theme}
+              </p>
+              <ol className={styles.playerOrderList}>
+                {gameState.players.map((player) => (
+                  <li key={player.id}>
+                    {player.name} - score {player.score}
+                  </li>
+                ))}
+              </ol>
+              <div className={styles.actionRow}>
+                <button className={styles.button} type="button" disabled>
+                  Roll
+                </button>
+                <button className={styles.button} type="button" disabled>
+                  Bank
+                </button>
+              </div>
+            </>
+          )}
         </section>
 
         <section
           className={styles.section}
           aria-labelledby="end-of-game-heading"
-          hidden={ACTIVE_SCREEN !== "end-of-game"}
+          hidden={activeScreen !== "end-of-game"}
         >
           <h2 id="end-of-game-heading" className={styles.sectionHeading}>
             End of Game

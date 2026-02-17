@@ -20,14 +20,14 @@ This plan translates `SPEC.md` into incremental build phases for a client-side N
 
 ## Phase 2 - Game Setup Experience
 
-- [ ] Build a setup form that allows entering 2-16 player names.
-- [ ] Add inline validation for non-empty player names and uniqueness across all entered players.
-- [ ] Add controls for round count presets (10/15/20) plus a custom round count input.
-- [ ] Add dice mode selector with `Built-in` and `Manual input` options.
-- [ ] Add theme selector options for `System`, `Light`, and `Dark`.
-- [ ] Disable game start until setup inputs are valid and complete.
-- [ ] On start, lock the player list/order and create the initial game state object.
-- [ ] Add tests for setup validation rules and state initialization behavior.
+- [x] Build a setup form that allows entering 2-16 player names.
+- [x] Add inline validation for non-empty player names and uniqueness across all entered players.
+- [x] Add controls for round count presets (10/15/20) plus a custom round count input.
+- [x] Add dice mode selector with `Built-in` and `Manual input` options.
+- [x] Add theme selector options for `System`, `Light`, and `Dark`.
+- [x] Disable game start until setup inputs are valid and complete.
+- [x] On start, lock the player list/order and create the initial game state object.
+- [x] Add tests for setup validation rules and state initialization behavior.
 
 ## Phase 3 - Core Game Engine (Pure Logic)
 
