@@ -59,14 +59,14 @@ This plan translates `SPEC.md` into incremental build phases for a client-side N
 
 ## Phase 5 - Dice Systems (Built-in + Manual)
 
-- [ ] Implement built-in dice rolling with `crypto.getRandomValues` for fair random values.
-- [ ] Normalize random bytes into die values constrained to 1-6.
-- [ ] Build a 3D-styled dice animation sequence with approximately 800 ms duration.
-- [ ] Delay outcome commit until animation completion for built-in mode.
-- [ ] Implement manual dice input controls for die one and die two values (1-6).
-- [ ] Bypass animation entirely in manual mode while still rendering resulting dice faces.
-- [ ] Add guardrails to prevent invalid manual input submission.
-- [ ] Add tests verifying both dice modes produce valid turn outcomes and consistent rule handling.
+- [x] Implement built-in dice rolling with `crypto.getRandomValues` for fair random values.
+- [x] Normalize random bytes into die values constrained to 1-6.
+- [x] Build a 3D-styled dice animation sequence with approximately 800 ms duration.
+- [x] Delay outcome commit until animation completion for built-in mode.
+- [x] Implement manual dice input controls for die one and die two values (1-6).
+- [x] Bypass animation entirely in manual mode while still rendering resulting dice faces.
+- [x] Add guardrails to prevent invalid manual input submission.
+- [x] Add tests verifying both dice modes produce valid turn outcomes and consistent rule handling.
 
 ## Phase 6 - Persistence, Resume, and Reset Flows
 

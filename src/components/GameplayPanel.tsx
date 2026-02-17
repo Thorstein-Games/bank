@@ -1,17 +1,37 @@
 import type { GameState } from "@/game/models";
 import styles from "./AppShell.module.css";
 
+type ManualDieField = "dieOne" | "dieTwo";
+
 interface GameplayPanelProps {
   canRoll: boolean;
   canBank: boolean;
   gameState: GameState;
+  diceOne: number;
+  diceTwo: number;
+  isDiceAnimating: boolean;
+  diceInputError: string | null;
+  isManualMode: boolean;
+  manualDieOneValue: string;
+  manualDieTwoValue: string;
   isSettingsOpen: boolean;
   onToggleSettings: () => void;
   onRoll: () => void;
+  onManualDieInputChange: (field: ManualDieField, nextValue: string) => void;
   onBankActivePlayer: () => void;
   onBankPlayer: (playerId: string) => void;
   onAdvanceTurn: () => void;
+  onClearSavedGame?: () => void;
 }
+
+const FACE_PIP_INDEXES: Record<number, number[]> = {
+  1: [4],
+  2: [0, 8],
+  3: [0, 4, 8],
+  4: [0, 2, 6, 8],
+  5: [0, 2, 4, 6, 8],
+  6: [0, 2, 3, 5, 6, 8]
+};
 
 function buildPlayerRowClassNames(
   isActivePlayer: boolean,
@@ -26,16 +46,53 @@ function buildPlayerRowClassNames(
     .join(" ");
 }
 
+function buildDieClassNames(isAnimating: boolean): string {
+  return [styles.die, isAnimating ? styles.dieAnimating : ""]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function buildPipClassNames(isVisible: boolean): string {
+  return [styles.pip, isVisible ? styles.pipVisible : ""]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function renderDieFace(value: number, isAnimating: boolean, label: string) {
+  const activePips = new Set(FACE_PIP_INDEXES[value] ?? FACE_PIP_INDEXES[1]);
+
+  return (
+    <div className={buildDieClassNames(isAnimating)} role="img" aria-label={`${label}: ${value}`}>
+      {Array.from({ length: 9 }, (_, pipIndex) => (
+        <span
+          // Keep a stable pip grid so face updates do not remount nodes per frame.
+          key={`${label}-pip-${pipIndex}`}
+          className={buildPipClassNames(activePips.has(pipIndex))}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function GameplayPanel({
   canRoll,
   canBank,
   gameState,
+  diceOne,
+  diceTwo,
+  isDiceAnimating,
+  diceInputError,
+  isManualMode,
+  manualDieOneValue,
+  manualDieTwoValue,
   isSettingsOpen,
   onToggleSettings,
   onRoll,
+  onManualDieInputChange,
   onBankActivePlayer,
   onBankPlayer,
-  onAdvanceTurn
+  onAdvanceTurn,
+  onClearSavedGame
 }: GameplayPanelProps) {
   const activeRoundPlayers = gameState.players.filter(
     (player) => !player.hasBankedThisRound
@@ -72,6 +129,11 @@ export default function GameplayPanel({
         >
           <p className={styles.sectionCopy}>Dice mode: {gameState.settings.diceMode}</p>
           <p className={styles.sectionCopy}>Theme: {gameState.settings.theme}</p>
+          {onClearSavedGame && (
+            <button className={styles.button} type="button" onClick={onClearSavedGame}>
+              Clear Saved Game
+            </button>
+          )}
         </aside>
       )}
 
@@ -91,6 +153,65 @@ export default function GameplayPanel({
           </p>
         )}
       </section>
+
+      <section className={styles.dicePanel} aria-label="Dice tray">
+        <div className={styles.diceRow} data-testid="dice-tray">
+          {renderDieFace(diceOne, isDiceAnimating, "Die one")}
+          {renderDieFace(diceTwo, isDiceAnimating, "Die two")}
+        </div>
+        <p className={styles.sectionCopy} aria-live="polite">
+          {isDiceAnimating ? "Rolling dice..." : `Dice showing ${diceOne} and ${diceTwo}.`}
+        </p>
+      </section>
+
+      {isManualMode && (
+        <section className={styles.manualDicePanel} aria-label="Manual dice input">
+          <h3 className={styles.sectionHeading}>Manual dice input</h3>
+          <div className={styles.manualDiceRow}>
+            <label className={styles.manualDiceField} htmlFor="manual-die-one">
+              <span className={styles.label}>Die one</span>
+              <input
+                id="manual-die-one"
+                className={styles.input}
+                type="number"
+                min={1}
+                max={6}
+                step={1}
+                inputMode="numeric"
+                value={manualDieOneValue}
+                onChange={(event) =>
+                  onManualDieInputChange("dieOne", event.target.value)
+                }
+                aria-invalid={Boolean(diceInputError)}
+                aria-describedby={diceInputError ? "manual-dice-error" : undefined}
+              />
+            </label>
+            <label className={styles.manualDiceField} htmlFor="manual-die-two">
+              <span className={styles.label}>Die two</span>
+              <input
+                id="manual-die-two"
+                className={styles.input}
+                type="number"
+                min={1}
+                max={6}
+                step={1}
+                inputMode="numeric"
+                value={manualDieTwoValue}
+                onChange={(event) =>
+                  onManualDieInputChange("dieTwo", event.target.value)
+                }
+                aria-invalid={Boolean(diceInputError)}
+                aria-describedby={diceInputError ? "manual-dice-error" : undefined}
+              />
+            </label>
+          </div>
+          {diceInputError && (
+            <p id="manual-dice-error" className={styles.errorText} role="alert">
+              {diceInputError}
+            </p>
+          )}
+        </section>
+      )}
 
       <ol className={styles.scoreboard} aria-label="Scoreboard">
         {gameState.players.map((player, index) => {
@@ -128,7 +249,7 @@ export default function GameplayPanel({
 
       <div className={styles.actionRow}>
         <button className={styles.button} type="button" onClick={onRoll} disabled={!canRoll}>
-          Roll
+          {isDiceAnimating ? "Rolling..." : "Roll"}
         </button>
         <button
           className={styles.button}
@@ -139,6 +260,12 @@ export default function GameplayPanel({
           Bank
         </button>
       </div>
+
+      {!isManualMode && diceInputError && (
+        <p className={styles.errorText} role="alert">
+          {diceInputError}
+        </p>
+      )}
 
       {gameState.turn.hasRolledThisTurn && (
         <section className={styles.postTurnPanel} aria-label="Post-turn banking">
