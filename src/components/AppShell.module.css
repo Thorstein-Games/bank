@@ -12,6 +12,14 @@
   gap: 6px;
 }
 
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .title {
   margin: 0;
   font-size: clamp(1.5rem, 3vw, 2.25rem);
@@ -44,6 +52,7 @@
 .sectionCopy {
   margin: 0;
   color: var(--color-muted);
+  line-height: 1.45;
 }
 
 .setupForm {
@@ -361,6 +370,13 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
+}
+
+.shortcutHint {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
 }
 
 .button {
@@ -376,6 +392,26 @@
   opacity: 0.55;
 }
 
+.button:focus-visible,
+.input:focus-visible,
+.rulesSummary:focus-visible,
+.optionLabel input:focus-visible {
+  outline: 2px solid #0284c7;
+  outline-offset: 2px;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 @keyframes die-spin {
   0% {
     transform: rotateX(0deg) rotateY(0deg) scale(1);
@@ -385,5 +421,49 @@
   }
   100% {
     transform: rotateX(360deg) rotateY(340deg) scale(1);
+  }
+}
+
+@media (max-width: 560px) {
+  .page {
+    padding: 18px 12px 28px;
+  }
+
+  .section {
+    padding: 12px;
+  }
+
+  .playerRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .actionRow .button,
+  .postTurnActions .button {
+    width: 100%;
+  }
+}
+
+@media (min-width: 900px) {
+  .page {
+    padding: 32px 24px 56px;
+  }
+
+  .section {
+    padding: 20px;
+  }
+
+  .playerGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dieAnimating {
+    animation: none;
+  }
+
+  .pip {
+    transition: none;
   }
 }

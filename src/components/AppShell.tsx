@@ -3,7 +3,10 @@
 import { MAX_PLAYERS, MIN_PLAYERS } from "@/game/constants";
 import type { GameScreen, GameState, ThemePreference } from "@/game/models";
 import { type GameAction, gameReducer } from "@/game/reducer";
-import useDiceRollController from "@/hooks/useDiceRollController";
+import useDiceRollController, {
+  type RollResolutionFeedback
+} from "@/hooks/useDiceRollController";
+import useGameAudio from "@/hooks/useGameAudio";
 import {
   buildSetupConfig,
   createDefaultSetupState,
@@ -16,13 +19,15 @@ import {
   clearPersistedGameSnapshot,
   GAME_SAVE_SCHEMA_VERSION,
   type PersistedGameSnapshot,
+  readPersistedAudioMuted,
   readPersistedGameSnapshot,
   readPersistedThemePreference,
+  writePersistedAudioMuted,
   writePersistedGameSnapshot,
   writePersistedThemePreference
 } from "@/state/persistence";
 import type { ChangeEvent, FormEvent } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styles from "./AppShell.module.css";
 import GameplayPanel from "./GameplayPanel";
 import SettingsPanel from "./SettingsPanel";
@@ -31,6 +36,11 @@ const PLAYER_COUNT_OPTIONS = Array.from(
   { length: MAX_PLAYERS - MIN_PLAYERS + 1 },
   (_, index) => MIN_PLAYERS + index
 );
+
+interface LiveAnnouncement {
+  id: number;
+  text: string;
+}
 
 function createSetupStateWithTheme(theme: ThemePreference) {
   return {
@@ -45,6 +55,32 @@ function getWinnerNames(gameState: GameState): string[] {
     .filter((winnerName): winnerName is string => Boolean(winnerName));
 }
 
+function isShortcutInputTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  const tagName = target.tagName;
+  return (
+    target.isContentEditable ||
+    tagName === "INPUT" ||
+    tagName === "TEXTAREA" ||
+    tagName === "SELECT"
+  );
+}
+
+function buildWinnerAnnouncement(winnerNames: string[]): string {
+  if (winnerNames.length === 0) {
+    return "Game complete. No winner recorded.";
+  }
+
+  if (winnerNames.length === 1) {
+    return `Game complete. Winner: ${winnerNames[0]}.`;
+  }
+
+  return `Game complete. Winners: ${winnerNames.join(", ")}.`;
+}
+
 export default function AppShell() {
   const [setupState, setSetupState] = useState(createDefaultSetupState);
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -53,6 +89,32 @@ export default function AppShell() {
   );
   const [hasLoadedSavedGame, setHasLoadedSavedGame] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAudioMuted, setIsAudioMuted] = useState(false);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [politeAnnouncement, setPoliteAnnouncement] = useState<LiveAnnouncement>({
+    id: 0,
+    text: ""
+  });
+  const [assertiveAnnouncement, setAssertiveAnnouncement] =
+    useState<LiveAnnouncement>({
+      id: 0,
+      text: ""
+    });
+  const previousScreenRef = useRef<GameScreen>("setup");
+
+  const announcePolite = useCallback((text: string) => {
+    setPoliteAnnouncement((currentAnnouncement) => ({
+      id: currentAnnouncement.id + 1,
+      text
+    }));
+  }, []);
+
+  const announceAssertive = useCallback((text: string) => {
+    setAssertiveAnnouncement((currentAnnouncement) => ({
+      id: currentAnnouncement.id + 1,
+      text
+    }));
+  }, []);
 
   const setupValidation = useMemo(
     () => validateSetup(setupState),
@@ -71,6 +133,36 @@ export default function AppShell() {
     });
   }, []);
 
+  const { playRollSound, playBankSound } = useGameAudio({
+    isMuted: isAudioMuted,
+    hasUserInteracted
+  });
+
+  const handleRollResolved = useCallback(
+    (rollResult: RollResolutionFeedback) => {
+      if (!gameState) {
+        return;
+      }
+
+      const activePlayerName =
+        gameState.players[gameState.turn.activePlayerIndex]?.name ?? "Active player";
+
+      if (rollResult.isBust) {
+        announceAssertive(
+          `Bust. ${activePlayerName} rolled ${rollResult.dieOne} and ${rollResult.dieTwo}. The round ended immediately.`
+        );
+        return;
+      }
+
+      const bonusText =
+        rollResult.total === 7 ? " Early 7 bonus applied." : "";
+      announcePolite(
+        `${activePlayerName} rolled ${rollResult.dieOne} and ${rollResult.dieTwo} for ${rollResult.total}. Communal bank is ${rollResult.nextBankTotal}.${bonusText}`
+      );
+    },
+    [announceAssertive, announcePolite, gameState]
+  );
+
   const {
     diceOne,
     diceTwo,
@@ -87,8 +179,25 @@ export default function AppShell() {
     handleManualDieInputChange
   } = useDiceRollController({
     gameState,
-    dispatchGameAction
+    dispatchGameAction,
+    onBuiltInRollStart: playRollSound,
+    onRollResolved: handleRollResolved
   });
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const markInteracted = () => setHasUserInteracted(true);
+    window.addEventListener("pointerdown", markInteracted);
+    window.addEventListener("keydown", markInteracted);
+
+    return () => {
+      window.removeEventListener("pointerdown", markInteracted);
+      window.removeEventListener("keydown", markInteracted);
+    };
+  }, []);
 
   useEffect(() => {
     const persistedThemePreference = readPersistedThemePreference();
@@ -99,6 +208,7 @@ export default function AppShell() {
       }));
     }
 
+    setIsAudioMuted(readPersistedAudioMuted());
     setResumeSnapshot(readPersistedGameSnapshot());
     setHasLoadedSavedGame(true);
   }, []);
@@ -131,6 +241,38 @@ export default function AppShell() {
   const winnerNames = gameState ? getWinnerNames(gameState) : [];
   const setupRoundCount =
     resolveRoundCount(setupState.roundCountOption, setupState.customRoundCount) ?? 0;
+  const handleBankPlayer = useCallback(
+    (playerId: string) => {
+      if (!gameState || !gameState.turn.hasRolledThisTurn) {
+        return;
+      }
+
+      const player = gameState.players.find(
+        (candidatePlayer) => candidatePlayer.id === playerId
+      );
+      if (!player || player.hasBankedThisRound) {
+        return;
+      }
+
+      const bankedAmount = gameState.round.bankTotal;
+      const nextScore = player.score + bankedAmount;
+
+      dispatchGameAction({
+        type: "bank-player",
+        playerId
+      });
+      playBankSound();
+      announcePolite(`${player.name} banked ${bankedAmount}. New score: ${nextScore}.`);
+    },
+    [announcePolite, dispatchGameAction, gameState, playBankSound]
+  );
+  const handleBankActivePlayer = useCallback(() => {
+    if (!activePlayer) {
+      return;
+    }
+
+    handleBankPlayer(activePlayer.id);
+  }, [activePlayer, handleBankPlayer]);
 
   useEffect(() => {
     if (!hasLoadedSavedGame || showResumePrompt) {
@@ -148,6 +290,60 @@ export default function AppShell() {
       pendingRoll
     });
   }, [gameState, pendingRoll, hasLoadedSavedGame, showResumePrompt]);
+
+  useEffect(() => {
+    if (!gameState) {
+      previousScreenRef.current = "setup";
+      return;
+    }
+
+    if (
+      gameState.status.screen === "end-of-game" &&
+      previousScreenRef.current !== "end-of-game"
+    ) {
+      announceAssertive(buildWinnerAnnouncement(getWinnerNames(gameState)));
+    }
+
+    previousScreenRef.current = gameState.status.screen;
+  }, [announceAssertive, gameState]);
+
+  useEffect(() => {
+    if (activeScreen !== "gameplay") {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        isShortcutInputTarget(event.target)
+      ) {
+        return;
+      }
+
+      const pressedKey = event.key.toLocaleLowerCase();
+      if (pressedKey === "r" && canRoll) {
+        event.preventDefault();
+        handleRoll();
+        return;
+      }
+
+      if (
+        pressedKey === "b" &&
+        canBank &&
+        activePlayer &&
+        !activePlayer.hasBankedThisRound
+      ) {
+        event.preventDefault();
+        handleBankActivePlayer();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activePlayer, activeScreen, canBank, canRoll, handleRoll, handleBankActivePlayer]);
 
   function handlePlayerCountChange(event: ChangeEvent<HTMLSelectElement>) {
     const nextCount = Number.parseInt(event.target.value, 10);
@@ -192,6 +388,15 @@ export default function AppShell() {
     });
 
     writePersistedThemePreference(nextTheme);
+  }
+
+  function handleToggleAudioMuted() {
+    setIsAudioMuted((currentMuted) => {
+      const nextMuted = !currentMuted;
+      writePersistedAudioMuted(nextMuted);
+      announcePolite(nextMuted ? "Audio muted." : "Audio unmuted.");
+      return nextMuted;
+    });
   }
 
   function handleStartGame(event: FormEvent<HTMLFormElement>) {
@@ -254,24 +459,6 @@ export default function AppShell() {
     clearPersistedGameSnapshot();
   }
 
-  function handleBankActivePlayer() {
-    if (!activePlayer) {
-      return;
-    }
-
-    dispatchGameAction({
-      type: "bank-player",
-      playerId: activePlayer.id
-    });
-  }
-
-  function handleBankPlayer(playerId: string) {
-    dispatchGameAction({
-      type: "bank-player",
-      playerId
-    });
-  }
-
   function handleAdvanceTurn() {
     dispatchGameAction({
       type: "advance-turn"
@@ -298,8 +485,25 @@ export default function AppShell() {
 
   return (
     <main className={styles.page}>
+      <div className={styles.visuallyHidden} aria-live="polite" aria-atomic="true">
+        <span key={politeAnnouncement.id}>{politeAnnouncement.text}</span>
+      </div>
+      <div className={styles.visuallyHidden} aria-live="assertive" aria-atomic="true">
+        <span key={assertiveAnnouncement.id}>{assertiveAnnouncement.text}</span>
+      </div>
+
       <header className={styles.header}>
-        <h1 className={styles.title}>Bank Dice Game</h1>
+        <div className={styles.headerRow}>
+          <h1 className={styles.title}>Bank Dice Game</h1>
+          <button
+            className={styles.button}
+            type="button"
+            onClick={handleToggleAudioMuted}
+            aria-pressed={isAudioMuted}
+          >
+            {isAudioMuted ? "Unmute Audio" : "Mute Audio"}
+          </button>
+        </div>
         <p className={styles.subtitle}>
           Configure players and options, then lock setup to begin gameplay.
         </p>
@@ -497,8 +701,7 @@ export default function AppShell() {
               <p className={styles.sectionCopy}>
                 {winnerNames.length > 1
                   ? `Winners: ${winnerNames.join(", ")}`
-                  : `Winner: ${winnerNames[0] ?? "No winner"}`
-                }
+                  : `Winner: ${winnerNames[0] ?? "No winner"}`}
               </p>
               <ol className={styles.scoreboard} aria-label="Final scoreboard">
                 {gameState.players.map((player) => (

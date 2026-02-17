@@ -1,4 +1,5 @@
 import type { GameState } from "@/game/models";
+import { useEffect, useRef } from "react";
 import styles from "./AppShell.module.css";
 
 type ManualDieField = "dieOne" | "dieTwo";
@@ -96,6 +97,26 @@ export default function GameplayPanel({
     (player) => !player.hasBankedThisRound
   );
   const activePlayer = gameState.players[gameState.turn.activePlayerIndex] ?? null;
+  const rollButtonRef = useRef<HTMLButtonElement | null>(null);
+  const bankButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previousCanRollRef = useRef(canRoll);
+  const previousCanBankRef = useRef(canBank);
+
+  useEffect(() => {
+    if (canBank && !previousCanBankRef.current) {
+      bankButtonRef.current?.focus();
+    }
+
+    previousCanBankRef.current = canBank;
+  }, [canBank]);
+
+  useEffect(() => {
+    if (canRoll && !previousCanRollRef.current) {
+      rollButtonRef.current?.focus();
+    }
+
+    previousCanRollRef.current = canRoll;
+  }, [canRoll]);
 
   return (
     <>
@@ -230,17 +251,27 @@ export default function GameplayPanel({
       </ol>
 
       <div className={styles.actionRow}>
-        <button className={styles.button} type="button" onClick={onRoll} disabled={!canRoll}>
+        <button
+          ref={rollButtonRef}
+          className={styles.button}
+          type="button"
+          onClick={onRoll}
+          disabled={!canRoll}
+          aria-keyshortcuts="R"
+        >
           {isDiceAnimating ? "Rolling..." : "Roll"}
         </button>
         <button
+          ref={bankButtonRef}
           className={styles.button}
           type="button"
           onClick={onBankActivePlayer}
           disabled={!canBank || !activePlayer || activePlayer.hasBankedThisRound}
+          aria-keyshortcuts="B"
         >
           Bank
         </button>
+        <p className={styles.shortcutHint}>Shortcuts: R = roll, B = bank active player.</p>
       </div>
 
       {!isManualMode && diceInputError && (

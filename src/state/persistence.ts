@@ -18,6 +18,7 @@ export const GAME_SAVE_STORAGE_KEY = buildVersionedStorageKey("saved-run");
 export const THEME_PREFERENCE_STORAGE_KEY = buildVersionedStorageKey(
   "theme-preference"
 );
+export const AUDIO_MUTED_STORAGE_KEY = buildVersionedStorageKey("audio-muted");
 
 export interface PersistedPendingRoll {
   dieOne: number;
@@ -73,6 +74,20 @@ export function writePersistedThemePreference(
   }
 
   return writeLocalStorage(THEME_PREFERENCE_STORAGE_KEY, preference);
+}
+
+export function readPersistedAudioMuted(): boolean {
+  const parsedValue = readLocalStorage<unknown>(AUDIO_MUTED_STORAGE_KEY, false);
+  if (typeof parsedValue === "boolean") {
+    return parsedValue;
+  }
+
+  removeLocalStorage(AUDIO_MUTED_STORAGE_KEY);
+  return false;
+}
+
+export function writePersistedAudioMuted(isMuted: boolean): boolean {
+  return writeLocalStorage(AUDIO_MUTED_STORAGE_KEY, isMuted);
 }
 
 function isPersistedGameSnapshot(value: unknown): value is PersistedGameSnapshot {

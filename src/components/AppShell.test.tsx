@@ -1,6 +1,7 @@
 import { rollDiceWithCrypto } from "../game/dice";
 import { createInitialGameState } from "@/state";
 import {
+  AUDIO_MUTED_STORAGE_KEY,
   GAME_SAVE_SCHEMA_VERSION,
   GAME_SAVE_STORAGE_KEY,
   THEME_PREFERENCE_STORAGE_KEY,
@@ -14,6 +15,22 @@ jest.mock("../game/dice", () => ({
 }));
 
 const mockedRollDiceWithCrypto = jest.mocked(rollDiceWithCrypto);
+
+function mockMatchMedia(matches: boolean) {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: jest.fn().mockImplementation(() => ({
+      matches,
+      media: "(prefers-reduced-motion: reduce)",
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn()
+    }))
+  });
+}
 
 function openSettings() {
   fireEvent.click(screen.getByRole("button", { name: "Settings" }));
@@ -73,6 +90,7 @@ describe("AppShell", () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
+    mockMatchMedia(false);
     window.localStorage.clear();
     mockedRollDiceWithCrypto.mockReset();
     mockedRollDiceWithCrypto.mockReturnValue({
@@ -163,6 +181,31 @@ describe("AppShell", () => {
     expect(screen.queryByText("Rolling dice...")).not.toBeInTheDocument();
     expect(bankTotal).toHaveTextContent("70");
     expect(bankButton).toBeEnabled();
+  });
+
+  it("supports gameplay keyboard shortcuts for rolling and banking", () => {
+    render(<AppShell />);
+    startGameWithTwoPlayers();
+
+    fireEvent.keyDown(window, { key: "r" });
+    expect(screen.getByRole("button", { name: "Rolling..." })).toBeInTheDocument();
+
+    completeBuiltInRollAnimation();
+    fireEvent.keyDown(window, { key: "b" });
+
+    expect(within(getPlayerRow("Alice")).getByText("Score 70")).toBeInTheDocument();
+  });
+
+  it("skips built-in animation when reduced motion is preferred", () => {
+    mockMatchMedia(true);
+    render(<AppShell />);
+    startGameWithTwoPlayers();
+
+    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
+
+    expect(screen.queryByRole("button", { name: "Rolling..." })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Bank" })).toBeEnabled();
+    expect(screen.getByTestId("communal-bank-total")).toHaveTextContent("70");
   });
 
   it("highlights active player and moves highlight after continuing turn", () => {
@@ -287,6 +330,18 @@ describe("AppShell", () => {
     expect(window.localStorage.getItem(THEME_PREFERENCE_STORAGE_KEY)).toBeNull();
   });
 
+  it("persists mute preference and toggles global audio state", () => {
+    render(<AppShell />);
+
+    const muteButton = screen.getByRole("button", { name: "Mute Audio" });
+    fireEvent.click(muteButton);
+
+    expect(window.localStorage.getItem(AUDIO_MUTED_STORAGE_KEY)).toBe(
+      JSON.stringify(true)
+    );
+    expect(screen.getByRole("button", { name: "Unmute Audio" })).toBeInTheDocument();
+  });
+
   it("locks dice mode during gameplay and keeps configured round count", () => {
     render(<AppShell />);
     startGameWithTwoPlayers({
@@ -340,5 +395,22 @@ describe("AppShell", () => {
     expect(screen.getByText("Round 1 of 1")).toBeInTheDocument();
     expect(within(getPlayerRow("Alice")).getByText("Score 0")).toBeInTheDocument();
     expect(within(getPlayerRow("Bob")).getByText("Score 0")).toBeInTheDocument();
+  });
+
+  it("announces roll, bank, and winner updates via live regions", () => {
+    render(<AppShell />);
+    startGameWithTwoPlayers({
+      diceMode: "manual",
+      roundCount: 1
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
+    expect(screen.getByText(/Alice rolled 1 and 1 for 2/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Bank Alice" }));
+    expect(screen.getByText(/Alice banked 2. New score: 2/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Bank Bob" }));
+    expect(screen.getByText(/Game complete. Winners: Alice, Bob./i)).toBeInTheDocument();
   });
 });

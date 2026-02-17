@@ -1,4 +1,10 @@
-import { DIE_MAX, DIE_MIN } from "@/game/constants";
+import {
+  BUST_TOTAL,
+  DIE_MAX,
+  DIE_MIN,
+  EARLY_SEVEN_BONUS,
+  EARLY_TURN_WINDOW
+} from "@/game/constants";
 import { type DiceValues, rollDiceWithCrypto } from "@/game/dice";
 import type { GameState } from "@/game/models";
 import type { GameAction } from "@/game/reducer";
@@ -22,6 +28,16 @@ export type ManualDieField = "dieOne" | "dieTwo";
 interface UseDiceRollControllerParams {
   gameState: GameState | null;
   dispatchGameAction: (action: GameAction) => void;
+  onBuiltInRollStart?: () => void;
+  onRollResolved?: (rollResult: RollResolutionFeedback) => void;
+}
+
+export interface RollResolutionFeedback {
+  dieOne: number;
+  dieTwo: number;
+  total: number;
+  nextBankTotal: number;
+  isBust: boolean;
 }
 
 interface UseDiceRollControllerResult {
@@ -62,9 +78,58 @@ function getManualDiceInputError(dieOne: number | null, dieTwo: number | null): 
   return null;
 }
 
+function buildRollResolutionFeedback(
+  gameState: GameState,
+  diceValues: DiceValues
+): RollResolutionFeedback {
+  const total = diceValues.dieOne + diceValues.dieTwo;
+  const isDouble = diceValues.dieOne === diceValues.dieTwo;
+  const isEarlyTurn = gameState.round.turnCountInRound < EARLY_TURN_WINDOW;
+
+  if (total === BUST_TOTAL) {
+    if (isEarlyTurn) {
+      return {
+        dieOne: diceValues.dieOne,
+        dieTwo: diceValues.dieTwo,
+        total,
+        nextBankTotal: gameState.round.bankTotal + EARLY_SEVEN_BONUS,
+        isBust: false
+      };
+    }
+
+    return {
+      dieOne: diceValues.dieOne,
+      dieTwo: diceValues.dieTwo,
+      total,
+      nextBankTotal: gameState.round.bankTotal,
+      isBust: true
+    };
+  }
+
+  if (isDouble && !isEarlyTurn) {
+    return {
+      dieOne: diceValues.dieOne,
+      dieTwo: diceValues.dieTwo,
+      total,
+      nextBankTotal: gameState.round.bankTotal * 2 + total,
+      isBust: false
+    };
+  }
+
+  return {
+    dieOne: diceValues.dieOne,
+    dieTwo: diceValues.dieTwo,
+    total,
+    nextBankTotal: gameState.round.bankTotal + total,
+    isBust: false
+  };
+}
+
 export default function useDiceRollController({
   gameState,
-  dispatchGameAction
+  dispatchGameAction,
+  onBuiltInRollStart,
+  onRollResolved
 }: UseDiceRollControllerParams): UseDiceRollControllerResult {
   const [diceDisplay, setDiceDisplay] = useState(DEFAULT_DICE_DISPLAY);
   const [pendingRoll, setPendingRoll] = useState<DiceValues | null>(null);
@@ -72,6 +137,7 @@ export default function useDiceRollController({
     DEFAULT_MANUAL_DICE_INPUTS
   );
   const [builtInDiceError, setBuiltInDiceError] = useState<string | null>(null);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const diceAnimationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const diceAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -88,6 +154,24 @@ export default function useDiceRollController({
   }, []);
 
   useEffect(() => () => clearDiceAnimationTimers(), [clearDiceAnimationTimers]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncPreference = () => setPrefersReducedMotion(mediaQuery.matches);
+    syncPreference();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", syncPreference);
+      return () => mediaQuery.removeEventListener("change", syncPreference);
+    }
+
+    mediaQuery.addListener(syncPreference);
+    return () => mediaQuery.removeListener(syncPreference);
+  }, []);
 
   const isManualMode = gameState?.settings.diceMode === "manual";
   const manualDieOne = parseManualDieInput(manualDiceInputs.dieOne);
@@ -149,6 +233,12 @@ export default function useDiceRollController({
         dieTwo,
         isAnimating: false
       });
+      onRollResolved?.(
+        buildRollResolutionFeedback(gameState, {
+          dieOne,
+          dieTwo
+        })
+      );
       dispatchGameAction({
         type: "resolve-roll",
         dieOne,
@@ -176,6 +266,28 @@ export default function useDiceRollController({
 
     setBuiltInDiceError(null);
     setPendingRoll(committedRoll);
+    onBuiltInRollStart?.();
+
+    const rollResolutionFeedback = buildRollResolutionFeedback(
+      gameState,
+      committedRoll
+    );
+
+    if (prefersReducedMotion) {
+      setPendingRoll(null);
+      setDiceDisplay({
+        ...committedRoll,
+        isAnimating: false
+      });
+      onRollResolved?.(rollResolutionFeedback);
+      dispatchGameAction({
+        type: "resolve-roll",
+        dieOne: committedRoll.dieOne,
+        dieTwo: committedRoll.dieTwo
+      });
+      return;
+    }
+
     setDiceDisplay({
       ...previewRoll,
       isAnimating: true
@@ -203,6 +315,7 @@ export default function useDiceRollController({
         ...committedRoll,
         isAnimating: false
       });
+      onRollResolved?.(rollResolutionFeedback);
       dispatchGameAction({
         type: "resolve-roll",
         dieOne: committedRoll.dieOne,

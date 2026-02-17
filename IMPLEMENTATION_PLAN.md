@@ -93,16 +93,16 @@ This plan translates `SPEC.md` into incremental build phases for a client-side N
 
 ## Phase 8 - Audio, Accessibility, and Responsive UX
 
-- [ ] Add dice roll sound effect trigger on roll start in built-in mode.
-- [ ] Add bank confirmation sound effect when a bank action succeeds.
-- [ ] Add global mute/unmute control and persist user audio preference.
-- [ ] Ensure audio only plays after valid user interaction to satisfy browser policies.
-- [ ] Implement keyboard shortcuts and focusable controls for roll and bank actions.
-- [ ] Add `aria-live` announcements for roll results, bank updates, bust events, and winners.
-- [ ] Implement reduced-motion handling via `prefers-reduced-motion` to shorten/skip animations.
-- [ ] Verify semantic button usage and predictable focus transitions between turn states.
-- [ ] Complete responsive layout refinements for mobile-first behavior with desktop adaptation.
-- [ ] Run accessibility checks and fix discovered contrast, labeling, and focus issues.
+- [x] Add dice roll sound effect trigger on roll start in built-in mode.
+- [x] Add bank confirmation sound effect when a bank action succeeds.
+- [x] Add global mute/unmute control and persist user audio preference.
+- [x] Ensure audio only plays after valid user interaction to satisfy browser policies.
+- [x] Implement keyboard shortcuts and focusable controls for roll and bank actions.
+- [x] Add `aria-live` announcements for roll results, bank updates, bust events, and winners.
+- [x] Implement reduced-motion handling via `prefers-reduced-motion` to shorten/skip animations.
+- [x] Verify semantic button usage and predictable focus transitions between turn states.
+- [x] Complete responsive layout refinements for mobile-first behavior with desktop adaptation.
+- [x] Run accessibility checks and fix discovered contrast, labeling, and focus issues.
 
 ## Phase 9 - SEO, Metadata, and Launch Validation
 

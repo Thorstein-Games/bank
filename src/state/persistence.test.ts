@@ -1,8 +1,10 @@
 import { createInitialGameState } from "@/state";
 import {
+  AUDIO_MUTED_STORAGE_KEY,
   GAME_SAVE_SCHEMA_VERSION,
   GAME_SAVE_STORAGE_KEY,
   readPersistedGameSnapshot,
+  readPersistedAudioMuted,
   readPersistedThemePreference,
   THEME_PREFERENCE_STORAGE_KEY,
   type PersistedGameSnapshot
@@ -87,5 +89,30 @@ describe("readPersistedThemePreference", () => {
 
     expect(readPersistedThemePreference()).toBeNull();
     expect(window.localStorage.getItem(THEME_PREFERENCE_STORAGE_KEY)).toBeNull();
+  });
+});
+
+describe("readPersistedAudioMuted", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("defaults to false when no audio preference exists", () => {
+    expect(readPersistedAudioMuted()).toBe(false);
+  });
+
+  it("returns persisted boolean values", () => {
+    window.localStorage.setItem(AUDIO_MUTED_STORAGE_KEY, JSON.stringify(true));
+    expect(readPersistedAudioMuted()).toBe(true);
+
+    window.localStorage.setItem(AUDIO_MUTED_STORAGE_KEY, JSON.stringify(false));
+    expect(readPersistedAudioMuted()).toBe(false);
+  });
+
+  it("drops malformed audio values", () => {
+    window.localStorage.setItem(AUDIO_MUTED_STORAGE_KEY, JSON.stringify("true"));
+
+    expect(readPersistedAudioMuted()).toBe(false);
+    expect(window.localStorage.getItem(AUDIO_MUTED_STORAGE_KEY)).toBeNull();
   });
 });
