@@ -110,15 +110,131 @@
   font-size: 0.875rem;
 }
 
-.playerOrderList {
-  margin: 0;
-  padding-left: 20px;
+.gameplayHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.settingsPanel {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.bankCard {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(16, 185, 129, 0.18)),
+    var(--color-surface);
+  padding: 12px;
   display: grid;
   gap: 4px;
 }
 
+.bankLabel {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.bankTotal {
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
+  font-weight: 700;
+}
+
+.scoreboard {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.playerRow {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.playerRowActive {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 1px #0284c7 inset;
+}
+
+.playerRowBanked {
+  opacity: 0.75;
+}
+
+.playerIdentity {
+  display: grid;
+  gap: 6px;
+}
+
+.playerName {
+  font-weight: 600;
+}
+
+.playerBadgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.activeBadge,
+.bankedBadge,
+.waitingBadge {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.activeBadge {
+  background: #0ea5e9;
+  color: #f8fafc;
+}
+
+.bankedBadge {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.waitingBadge {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.playerScore {
+  margin: 0;
+  font-weight: 600;
+}
+
+.postTurnPanel {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.postTurnActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .actionRow {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 

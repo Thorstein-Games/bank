@@ -46,16 +46,16 @@ This plan translates `SPEC.md` into incremental build phases for a client-side N
 
 ## Phase 4 - Turn Flow and Gameplay UI
 
-- [ ] Build a gameplay header showing current round and total configured rounds.
-- [ ] Render scoreboard with player names, cumulative scores, and banked-state indicators.
-- [ ] Highlight the active player clearly in turn order.
-- [ ] Show communal bank total prominently and update it immediately after each roll.
-- [ ] Add `Roll` button behavior tied to the active turn state.
-- [ ] Keep `Bank` action disabled until a roll has occurred in the current turn cycle.
-- [ ] Add post-turn banking controls so every still-active player can choose bank or continue.
-- [ ] Ensure banked players are visually marked and cannot roll again in that round.
-- [ ] Add `Settings` entry point accessible from gameplay UI.
-- [ ] Add component-level tests for button disabled/enabled states and turn highlighting.
+- [x] Build a gameplay header showing current round and total configured rounds.
+- [x] Render scoreboard with player names, cumulative scores, and banked-state indicators.
+- [x] Highlight the active player clearly in turn order.
+- [x] Show communal bank total prominently and update it immediately after each roll.
+- [x] Add `Roll` button behavior tied to the active turn state.
+- [x] Keep `Bank` action disabled until a roll has occurred in the current turn cycle.
+- [x] Add post-turn banking controls so every still-active player can choose bank or continue.
+- [x] Ensure banked players are visually marked and cannot roll again in that round.
+- [x] Add `Settings` entry point accessible from gameplay UI.
+- [x] Add component-level tests for button disabled/enabled states and turn highlighting.
 
 ## Phase 5 - Dice Systems (Built-in + Manual)
 

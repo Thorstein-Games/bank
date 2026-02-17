@@ -1,11 +1,14 @@
 "use client";
 
 import {
+  DIE_MAX,
+  DIE_MIN,
   MAX_PLAYERS,
   MIN_PLAYERS,
   ROUND_COUNT_PRESETS
 } from "@/game/constants";
 import type { GameScreen, GameState } from "@/game/models";
+import { type GameAction, gameReducer } from "@/game/reducer";
 import {
   buildSetupConfig,
   createDefaultSetupState,
@@ -17,15 +20,21 @@ import {
 import type { ChangeEvent, FormEvent } from "react";
 import { useMemo, useState } from "react";
 import styles from "./AppShell.module.css";
+import GameplayPanel from "./GameplayPanel";
 
 const PLAYER_COUNT_OPTIONS = Array.from(
   { length: MAX_PLAYERS - MIN_PLAYERS + 1 },
   (_, index) => MIN_PLAYERS + index
 );
 
+function rollDie(): number {
+  return Math.floor(Math.random() * (DIE_MAX - DIE_MIN + 1)) + DIE_MIN;
+}
+
 export default function AppShell() {
   const [setupState, setSetupState] = useState(createDefaultSetupState);
   const [gameState, setGameState] = useState<GameState | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const setupValidation = useMemo(
     () => validateSetup(setupState),
@@ -33,6 +42,26 @@ export default function AppShell() {
   );
 
   const activeScreen: GameScreen = gameState ? gameState.status.screen : "setup";
+  const activePlayer = gameState
+    ? gameState.players[gameState.turn.activePlayerIndex] ?? null
+    : null;
+  const canRoll = Boolean(
+    gameState &&
+      activePlayer &&
+      !gameState.turn.hasRolledThisTurn &&
+      !activePlayer.hasBankedThisRound
+  );
+  const canBank = Boolean(gameState && gameState.turn.hasRolledThisTurn);
+
+  function dispatchGameAction(action: GameAction) {
+    setGameState((currentState) => {
+      if (!currentState) {
+        return currentState;
+      }
+
+      return gameReducer(currentState, action);
+    });
+  }
 
   function handlePlayerCountChange(event: ChangeEvent<HTMLSelectElement>) {
     const nextCount = Number.parseInt(event.target.value, 10);
@@ -76,7 +105,40 @@ export default function AppShell() {
       return;
     }
 
+    setIsSettingsOpen(false);
     setGameState(createInitialGameState(setupConfig));
+  }
+
+  function handleRoll() {
+    dispatchGameAction({
+      type: "resolve-roll",
+      dieOne: rollDie(),
+      dieTwo: rollDie()
+    });
+  }
+
+  function handleBankActivePlayer() {
+    if (!activePlayer) {
+      return;
+    }
+
+    dispatchGameAction({
+      type: "bank-player",
+      playerId: activePlayer.id
+    });
+  }
+
+  function handleBankPlayer(playerId: string) {
+    dispatchGameAction({
+      type: "bank-player",
+      playerId
+    });
+  }
+
+  function handleAdvanceTurn() {
+    dispatchGameAction({
+      type: "advance-turn"
+    });
   }
 
   return (
@@ -311,36 +373,20 @@ export default function AppShell() {
           aria-labelledby="gameplay-heading"
           hidden={activeScreen !== "gameplay"}
         >
-          <h2 id="gameplay-heading" className={styles.sectionHeading}>
-            Gameplay
-          </h2>
           {gameState && (
-            <>
-              <p className={styles.sectionCopy}>
-                Setup is locked. Player order and settings are now fixed for this game.
-              </p>
-              <p className={styles.sectionCopy}>
-                Round {gameState.round.currentRound} of {gameState.settings.roundCount}
-              </p>
-              <p className={styles.sectionCopy}>
-                Dice mode: {gameState.settings.diceMode} | Theme: {gameState.settings.theme}
-              </p>
-              <ol className={styles.playerOrderList}>
-                {gameState.players.map((player) => (
-                  <li key={player.id}>
-                    {player.name} - score {player.score}
-                  </li>
-                ))}
-              </ol>
-              <div className={styles.actionRow}>
-                <button className={styles.button} type="button" disabled>
-                  Roll
-                </button>
-                <button className={styles.button} type="button" disabled>
-                  Bank
-                </button>
-              </div>
-            </>
+            <GameplayPanel
+              canRoll={canRoll}
+              canBank={canBank}
+              gameState={gameState}
+              isSettingsOpen={isSettingsOpen}
+              onToggleSettings={() =>
+                setIsSettingsOpen((currentValue) => !currentValue)
+              }
+              onRoll={handleRoll}
+              onBankActivePlayer={handleBankActivePlayer}
+              onBankPlayer={handleBankPlayer}
+              onAdvanceTurn={handleAdvanceTurn}
+            />
           )}
         </section>
 
