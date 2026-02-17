@@ -1,33 +1,65 @@
 :root {
-  --color-background: #f1f5f9;
+  --color-background: #eef3ff;
   --color-surface: #ffffff;
-  --color-text: #0f172a;
-  --color-muted: #475569;
-  --color-border: #cbd5e1;
+  --color-surface-elevated: #f4f8ff;
+  --color-text: #0f1d3d;
+  --color-muted: #4e618b;
+  --color-border: #b8c7e6;
+  --color-border-strong: #90a7d6;
+  --color-accent: #ff8a1f;
+  --color-accent-strong: #ff5a00;
+  --color-accent-contrast: #fefaf7;
+  --color-danger: #d92d20;
+  --shadow-soft: 0 10px 24px rgba(17, 35, 72, 0.1);
+  --shadow-strong: 0 14px 32px rgba(17, 35, 72, 0.14);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-background: #020617;
-    --color-surface: #0f172a;
-    --color-text: #e2e8f0;
-    --color-muted: #94a3b8;
-    --color-border: #1e293b;
+    --color-background: #060d1d;
+    --color-surface: #0f1d38;
+    --color-surface-elevated: #14274a;
+    --color-text: #ecf3ff;
+    --color-muted: #a5b8dc;
+    --color-border: #2f4369;
+    --color-border-strong: #496290;
+    --color-accent: #ffa236;
+    --color-accent-strong: #ff6d1e;
+    --color-accent-contrast: #190d00;
+    --color-danger: #ff7b73;
+    --shadow-soft: 0 14px 28px rgba(1, 5, 14, 0.5);
+    --shadow-strong: 0 18px 34px rgba(1, 5, 14, 0.62);
   }
 }
 
 html[data-theme="light"] {
-  --color-background: #f1f5f9;
+  --color-background: #eef3ff;
   --color-surface: #ffffff;
-  --color-text: #0f172a;
-  --color-muted: #475569;
-  --color-border: #cbd5e1;
+  --color-surface-elevated: #f4f8ff;
+  --color-text: #0f1d3d;
+  --color-muted: #4e618b;
+  --color-border: #b8c7e6;
+  --color-border-strong: #90a7d6;
+  --color-accent: #ff8a1f;
+  --color-accent-strong: #ff5a00;
+  --color-accent-contrast: #fefaf7;
+  --color-danger: #d92d20;
+  --shadow-soft: 0 10px 24px rgba(17, 35, 72, 0.1);
+  --shadow-strong: 0 14px 32px rgba(17, 35, 72, 0.14);
 }
 
 html[data-theme="dark"] {
-  --color-background: #020617;
-  --color-surface: #0f172a;
-  --color-text: #e2e8f0;
-  --color-muted: #94a3b8;
-  --color-border: #1e293b;
+  --color-background: #060d1d;
+  --color-surface: #0f1d38;
+  --color-surface-elevated: #14274a;
+  --color-text: #ecf3ff;
+  --color-muted: #a5b8dc;
+  --color-border: #2f4369;
+  --color-border-strong: #496290;
+  --color-accent: #ffa236;
+  --color-accent-strong: #ff6d1e;
+  --color-accent-contrast: #190d00;
+  --color-danger: #ff7b73;
+  --shadow-soft: 0 14px 28px rgba(1, 5, 14, 0.5);
+  --shadow-strong: 0 18px 34px rgba(1, 5, 14, 0.62);
 }

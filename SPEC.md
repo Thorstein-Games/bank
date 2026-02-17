@@ -194,6 +194,8 @@ If reload occurs mid-roll, rolled values are stored and animation skipped.
   - Settings
   - Play Again (after game end)
 
+Settings controls are visible during setup and hidden during active gameplay.
+
 Bank button disabled before rolling.
 
 ### Layout
@@ -254,6 +256,8 @@ Settings must include:
 
 Rules are read-only.
 
+Gameplay screen does not expose settings controls.
+
 ---
 
 ## 17. End-of-Game Flow
@@ -262,6 +266,7 @@ After final round:
 
 - Winners displayed.
 - Final scoreboard shown.
+- Confetti burst animation plays once.
 - “Play Again” button available.
 
 Play Again:

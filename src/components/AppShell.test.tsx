@@ -119,7 +119,9 @@ describe("AppShell", () => {
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
     jest.useRealTimers();
     confirmSpy.mockRestore();
   });
@@ -256,6 +258,49 @@ describe("AppShell", () => {
     ).toHaveLength(4);
   });
 
+  it("shows the end screen only after all rounds are complete", () => {
+    render(<AppShell />);
+    startGameWithTwoPlayers({
+      diceMode: "manual",
+      roundCount: 2
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bank Alice" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bank Bob" }));
+
+    expect(screen.getByText("Round 2 of 2")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "End of Game" })
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bank Alice" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bank Bob" }));
+
+    expect(screen.getByRole("heading", { name: "End of Game" })).toBeInTheDocument();
+  });
+
+  it("shows confetti when the game ends and clears it after the burst", () => {
+    render(<AppShell />);
+    startGameWithTwoPlayers({
+      diceMode: "manual",
+      roundCount: 1
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bank Alice" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bank Bob" }));
+
+    expect(screen.getByTestId("confetti-burst")).toBeInTheDocument();
+
+    act(() => {
+      jest.advanceTimersByTime(4200);
+    });
+
+    expect(screen.queryByTestId("confetti-burst")).not.toBeInTheDocument();
+  });
+
   it("supports gameplay keyboard shortcuts for rolling and banking", () => {
     render(<AppShell />);
     startGameWithTwoPlayers();
@@ -369,12 +414,19 @@ describe("AppShell", () => {
   });
 
   it("requires confirmation before resetting saved game data", () => {
+    persistSnapshot({
+      schemaVersion: GAME_SAVE_SCHEMA_VERSION,
+      gameState: createInitialGameState({
+        playerNames: ["Alice", "Bob"],
+        roundCount: 10,
+        diceMode: "built-in",
+        theme: "system"
+      }),
+      pendingRoll: null
+    });
     render(<AppShell />);
-    startGameWithTwoPlayers();
 
-    expect(window.localStorage.getItem(GAME_SAVE_STORAGE_KEY)).not.toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    openSettings();
 
     confirmSpy.mockReturnValueOnce(false);
     fireEvent.click(screen.getByRole("button", { name: "Reset Saved Game" }));
@@ -415,7 +467,7 @@ describe("AppShell", () => {
     expect(screen.getByRole("button", { name: "Unmute Audio" })).toBeInTheDocument();
   });
 
-  it("locks dice mode during gameplay and keeps configured round count", () => {
+  it("hides settings during gameplay and keeps configured round count", () => {
     render(<AppShell />);
     startGameWithTwoPlayers({
       diceMode: "manual",
@@ -424,15 +476,7 @@ describe("AppShell", () => {
 
     expect(screen.getByText("Round 1 of 12")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Manual dice input" })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
-
-    expect(screen.getByText(/Dice mode is locked for this game:/i)).toHaveTextContent(
-      "manual"
-    );
-    expect(
-      screen.getByText(/Configured rounds for this game:/i)
-    ).toHaveTextContent("12");
+    expect(screen.queryByRole("button", { name: "Settings" })).not.toBeInTheDocument();
   });
 
   it("expands and collapses the rules section in settings", () => {

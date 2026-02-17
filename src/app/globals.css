@@ -1,5 +1,10 @@
 @import "../styles/index.css";
 
+:root {
+  --font-body: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-display: "Trebuchet MS", "Gill Sans", "Avenir Next", sans-serif;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -11,9 +16,21 @@ body {
 }
 
 body {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  min-height: 100dvh;
+  font-family: var(--font-body), "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   color: var(--color-text);
-  background: var(--color-background);
+  background:
+    radial-gradient(circle at 82% -12%, rgba(255, 138, 31, 0.2), transparent 34%),
+    radial-gradient(circle at 10% 4%, rgba(22, 119, 255, 0.17), transparent 40%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.32), transparent 48%),
+    var(--color-background);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display), var(--font-body), sans-serif;
 }
 
 button {

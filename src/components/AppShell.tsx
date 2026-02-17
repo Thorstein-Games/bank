@@ -29,6 +29,7 @@ import {
 import type { ChangeEvent, FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styles from "./AppShell.module.css";
+import ConfettiBurst from "./ConfettiBurst";
 import GameplayPanel from "./GameplayPanel";
 import SettingsPanel from "./SettingsPanel";
 
@@ -81,6 +82,10 @@ function buildWinnerAnnouncement(winnerNames: string[]): string {
   return `Game complete. Winners: ${winnerNames.join(", ")}.`;
 }
 
+function buildButtonClassNames(...classNames: string[]): string {
+  return classNames.filter(Boolean).join(" ");
+}
+
 export default function AppShell() {
   const [setupState, setSetupState] = useState(createDefaultSetupState);
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -100,6 +105,7 @@ export default function AppShell() {
       id: 0,
       text: ""
     });
+  const [isConfettiActive, setIsConfettiActive] = useState(false);
   const previousScreenRef = useRef<GameScreen>("setup");
 
   const announcePolite = useCallback((text: string) => {
@@ -294,6 +300,7 @@ export default function AppShell() {
   useEffect(() => {
     if (!gameState) {
       previousScreenRef.current = "setup";
+      setIsConfettiActive(false);
       return;
     }
 
@@ -302,10 +309,25 @@ export default function AppShell() {
       previousScreenRef.current !== "end-of-game"
     ) {
       announceAssertive(buildWinnerAnnouncement(getWinnerNames(gameState)));
+      setIsConfettiActive(true);
+    } else if (gameState.status.screen !== "end-of-game") {
+      setIsConfettiActive(false);
     }
 
     previousScreenRef.current = gameState.status.screen;
   }, [announceAssertive, gameState]);
+
+  useEffect(() => {
+    if (!isConfettiActive) {
+      return;
+    }
+
+    const confettiTimeout = setTimeout(() => {
+      setIsConfettiActive(false);
+    }, 4200);
+
+    return () => clearTimeout(confettiTimeout);
+  }, [isConfettiActive]);
 
   useEffect(() => {
     if (activeScreen !== "gameplay") {
@@ -409,6 +431,7 @@ export default function AppShell() {
 
     resetDiceState();
     setIsSettingsOpen(false);
+    setIsConfettiActive(false);
     setResumeSnapshot(null);
     setGameState(createInitialGameState(setupConfig));
   }
@@ -433,6 +456,7 @@ export default function AppShell() {
     }
 
     setIsSettingsOpen(false);
+    setIsConfettiActive(false);
     setGameState(hydratedGameState);
     setResumeSnapshot(null);
   }
@@ -443,6 +467,7 @@ export default function AppShell() {
     setGameState(null);
     setResumeSnapshot(null);
     setIsSettingsOpen(false);
+    setIsConfettiActive(false);
     clearPersistedGameSnapshot();
   }
 
@@ -473,6 +498,7 @@ export default function AppShell() {
     resetDiceState();
     setResumeSnapshot(null);
     setIsSettingsOpen(false);
+    setIsConfettiActive(false);
     setGameState(
       createInitialGameState({
         playerNames: gameState.players.map((player) => player.name),
@@ -485,6 +511,7 @@ export default function AppShell() {
 
   return (
     <main className={styles.page}>
+      <ConfettiBurst isActive={isConfettiActive} />
       <div className={styles.visuallyHidden} aria-live="polite" aria-atomic="true">
         <span key={politeAnnouncement.id}>{politeAnnouncement.text}</span>
       </div>
@@ -496,7 +523,7 @@ export default function AppShell() {
         <div className={styles.headerRow}>
           <h1 className={styles.title}>Play bank game online with Bank Dice Game</h1>
           <button
-            className={styles.button}
+            className={buildButtonClassNames(styles.button, styles.subtleButton)}
             type="button"
             onClick={handleToggleAudioMuted}
             aria-pressed={isAudioMuted}
@@ -521,7 +548,7 @@ export default function AppShell() {
               Setup
             </h2>
             <button
-              className={styles.button}
+              className={buildButtonClassNames(styles.button, styles.subtleButton)}
               type="button"
               onClick={() => setIsSettingsOpen((currentValue) => !currentValue)}
               aria-expanded={isSettingsOpen}
@@ -634,7 +661,7 @@ export default function AppShell() {
 
               <div className={styles.actionRow}>
                 <button
-                  className={styles.button}
+                  className={buildButtonClassNames(styles.button, styles.primaryButton)}
                   type="submit"
                   disabled={!setupValidation.isValid}
                 >
@@ -651,41 +678,23 @@ export default function AppShell() {
           hidden={activeScreen !== "gameplay"}
         >
           {gameState && (
-            <>
-              <SettingsPanel
-                context="gameplay"
-                isOpen={isSettingsOpen}
-                theme={gameState.settings.theme}
-                diceMode={gameState.settings.diceMode}
-                roundCountOption={setupState.roundCountOption}
-                customRoundCount={setupState.customRoundCount}
-                roundCountError={null}
-                configuredRoundCount={gameState.settings.roundCount}
-                onThemeChange={handleThemeChange}
-                onResetSavedGame={handleResetSavedGame}
-              />
-              <GameplayPanel
-                canRoll={canRoll}
-                canBank={canBank}
-                gameState={gameState}
-                diceOne={diceOne}
-                diceTwo={diceTwo}
-                isDiceAnimating={isDiceAnimating}
-                diceInputError={diceInputError}
-                isManualMode={isManualMode}
-                manualDieOneValue={manualDieOneValue}
-                manualDieTwoValue={manualDieTwoValue}
-                isSettingsOpen={isSettingsOpen}
-                onToggleSettings={() =>
-                  setIsSettingsOpen((currentValue) => !currentValue)
-                }
-                onRoll={handleRoll}
-                onManualDieInputChange={handleManualDieInputChange}
-                onBankActivePlayer={handleBankActivePlayer}
-                onBankPlayer={handleBankPlayer}
-                onAdvanceTurn={handleAdvanceTurn}
-              />
-            </>
+            <GameplayPanel
+              canRoll={canRoll}
+              canBank={canBank}
+              gameState={gameState}
+              diceOne={diceOne}
+              diceTwo={diceTwo}
+              isDiceAnimating={isDiceAnimating}
+              diceInputError={diceInputError}
+              isManualMode={isManualMode}
+              manualDieOneValue={manualDieOneValue}
+              manualDieTwoValue={manualDieTwoValue}
+              onRoll={handleRoll}
+              onManualDieInputChange={handleManualDieInputChange}
+              onBankActivePlayer={handleBankActivePlayer}
+              onBankPlayer={handleBankPlayer}
+              onAdvanceTurn={handleAdvanceTurn}
+            />
           )}
         </section>
 
@@ -704,6 +713,9 @@ export default function AppShell() {
                   ? `Winners: ${winnerNames.join(", ")}`
                   : `Winner: ${winnerNames[0] ?? "No winner"}`}
               </p>
+              <p className={styles.sectionCopy}>
+                All {gameState.settings.roundCount} rounds are complete.
+              </p>
               <ol className={styles.scoreboard} aria-label="Final scoreboard">
                 {gameState.players.map((player) => (
                   <li key={player.id} className={styles.playerRow}>
@@ -715,7 +727,11 @@ export default function AppShell() {
             </>
           )}
           <div className={styles.actionRow}>
-            <button className={styles.button} type="button" onClick={handlePlayAgain}>
+            <button
+              className={buildButtonClassNames(styles.button, styles.primaryButton)}
+              type="button"
+              onClick={handlePlayAgain}
+            >
               Play Again
             </button>
           </div>

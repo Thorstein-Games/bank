@@ -1,5 +1,5 @@
 import type { GameState } from "@/game/models";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import styles from "./AppShell.module.css";
 
 type ManualDieField = "dieOne" | "dieTwo";
@@ -15,8 +15,6 @@ interface GameplayPanelProps {
   isManualMode: boolean;
   manualDieOneValue: string;
   manualDieTwoValue: string;
-  isSettingsOpen: boolean;
-  onToggleSettings: () => void;
   onRoll: () => void;
   onManualDieInputChange: (field: ManualDieField, nextValue: string) => void;
   onBankActivePlayer: () => void;
@@ -35,12 +33,14 @@ const FACE_PIP_INDEXES: Record<number, number[]> = {
 
 function buildPlayerRowClassNames(
   isActivePlayer: boolean,
-  hasBankedThisRound: boolean
+  hasBankedThisRound: boolean,
+  isLeader: boolean
 ): string {
   return [
     styles.playerRow,
     isActivePlayer ? styles.playerRowActive : "",
-    hasBankedThisRound ? styles.playerRowBanked : ""
+    hasBankedThisRound ? styles.playerRowBanked : "",
+    isLeader ? styles.playerRowLeader : ""
   ]
     .filter(Boolean)
     .join(" ");
@@ -56,6 +56,10 @@ function buildPipClassNames(isVisible: boolean): string {
   return [styles.pip, isVisible ? styles.pipVisible : ""]
     .filter(Boolean)
     .join(" ");
+}
+
+function buildButtonClassNames(...classNames: string[]): string {
+  return classNames.filter(Boolean).join(" ");
 }
 
 function renderDieFace(value: number, isAnimating: boolean, label: string) {
@@ -85,18 +89,25 @@ export default function GameplayPanel({
   isManualMode,
   manualDieOneValue,
   manualDieTwoValue,
-  isSettingsOpen,
-  onToggleSettings,
   onRoll,
   onManualDieInputChange,
   onBankActivePlayer,
   onBankPlayer,
   onAdvanceTurn
 }: GameplayPanelProps) {
-  const activeRoundPlayers = gameState.players.filter(
-    (player) => !player.hasBankedThisRound
+  const activeRoundPlayers = useMemo(
+    () => gameState.players.filter((player) => !player.hasBankedThisRound),
+    [gameState.players]
   );
   const activePlayer = gameState.players[gameState.turn.activePlayerIndex] ?? null;
+  const highestScore = useMemo(
+    () =>
+      gameState.players.reduce(
+        (currentHighestScore, player) => Math.max(currentHighestScore, player.score),
+        0
+      ),
+    [gameState.players]
+  );
   const rollButtonRef = useRef<HTMLButtonElement | null>(null);
   const bankButtonRef = useRef<HTMLButtonElement | null>(null);
   const previousCanRollRef = useRef(canRoll);
@@ -129,15 +140,10 @@ export default function GameplayPanel({
             Round {gameState.round.currentRound} of {gameState.settings.roundCount}
           </p>
         </div>
-        <button
-          className={styles.button}
-          type="button"
-          onClick={onToggleSettings}
-          aria-expanded={isSettingsOpen}
-          aria-controls="gameplay-settings-panel"
-        >
-          Settings
-        </button>
+        <div className={styles.turnMarker} aria-live="polite">
+          <span className={styles.turnLabel}>Active player</span>
+          <span className={styles.turnPlayer}>{activePlayer?.name ?? "Waiting..."}</span>
+        </div>
       </div>
 
       <section className={styles.bankCard} aria-label="Communal bank">
@@ -149,6 +155,11 @@ export default function GameplayPanel({
         >
           {gameState.round.bankTotal}
         </output>
+        <p className={styles.bankPrompt}>
+          {gameState.turn.hasRolledThisTurn
+            ? "Bank now or push your luck."
+            : "Roll to build the jackpot."}
+        </p>
         {gameState.turn.lastRoll && (
           <p className={styles.sectionCopy}>
             Last roll: {gameState.turn.lastRoll.dieOne} + {gameState.turn.lastRoll.dieTwo} ={" "}
@@ -158,6 +169,7 @@ export default function GameplayPanel({
       </section>
 
       <section className={styles.dicePanel} aria-label="Dice tray">
+        <p className={styles.dicePanelLabel}>Dice Tray</p>
         <div className={styles.diceRow} data-testid="dice-tray">
           {renderDieFace(diceOne, isDiceAnimating, "Die one")}
           {renderDieFace(diceTwo, isDiceAnimating, "Die two")}
@@ -219,18 +231,25 @@ export default function GameplayPanel({
       <ol className={styles.scoreboard} aria-label="Scoreboard">
         {gameState.players.map((player, index) => {
           const isActivePlayer = index === gameState.turn.activePlayerIndex;
+          const isLeader = highestScore > 0 && player.score === highestScore;
+          const scoreFillWidth =
+            highestScore === 0 ? "0%" : `${Math.round((player.score / highestScore) * 100)}%`;
 
           return (
             <li
               key={player.id}
               className={buildPlayerRowClassNames(
                 isActivePlayer,
-                player.hasBankedThisRound
+                player.hasBankedThisRound,
+                isLeader
               )}
               aria-current={isActivePlayer ? "true" : undefined}
             >
               <div className={styles.playerIdentity}>
-                <span className={styles.playerName}>{player.name}</span>
+                <div className={styles.playerNameRow}>
+                  <span className={styles.playerName}>{player.name}</span>
+                  {isLeader && <span className={styles.leaderBadge}>Leader</span>}
+                </div>
                 <div className={styles.playerBadgeRow}>
                   {isActivePlayer && <span className={styles.activeBadge}>Active</span>}
                   <span
@@ -243,6 +262,9 @@ export default function GameplayPanel({
                     {player.hasBankedThisRound ? "Banked" : "In Round"}
                   </span>
                 </div>
+                <div className={styles.scoreTrack} aria-hidden="true">
+                  <span className={styles.scoreFill} style={{ width: scoreFillWidth }} />
+                </div>
               </div>
               <p className={styles.playerScore}>Score {player.score}</p>
             </li>
@@ -253,7 +275,7 @@ export default function GameplayPanel({
       <div className={styles.actionRow}>
         <button
           ref={rollButtonRef}
-          className={styles.button}
+          className={buildButtonClassNames(styles.button, styles.primaryButton)}
           type="button"
           onClick={onRoll}
           disabled={!canRoll}
@@ -263,7 +285,7 @@ export default function GameplayPanel({
         </button>
         <button
           ref={bankButtonRef}
-          className={styles.button}
+          className={buildButtonClassNames(styles.button, styles.secondaryButton)}
           type="button"
           onClick={onBankActivePlayer}
           disabled={!canBank || !activePlayer || activePlayer.hasBankedThisRound}
@@ -290,14 +312,18 @@ export default function GameplayPanel({
             {activeRoundPlayers.map((player) => (
               <button
                 key={player.id}
-                className={styles.button}
+                className={buildButtonClassNames(styles.button, styles.subtleButton)}
                 type="button"
                 onClick={() => onBankPlayer(player.id)}
               >
                 Bank {player.name}
               </button>
             ))}
-            <button className={styles.button} type="button" onClick={onAdvanceTurn}>
+            <button
+              className={buildButtonClassNames(styles.button, styles.primaryButton)}
+              type="button"
+              onClick={onAdvanceTurn}
+            >
               Continue Turn
             </button>
           </div>

@@ -1,33 +1,67 @@
 .page {
-  width: min(100%, 920px);
+  width: min(100%, 1060px);
   min-height: 100dvh;
   margin: 0 auto;
-  padding: 24px 16px 40px;
+  padding: 28px 16px 52px;
   display: grid;
   gap: 20px;
+  position: relative;
 }
 
 .header {
+  border: 1px solid var(--color-border-strong);
+  border-radius: 24px;
+  padding: clamp(18px, 3vw, 30px);
+  background:
+    radial-gradient(circle at 84% -20%, rgba(255, 166, 43, 0.35), transparent 48%),
+    radial-gradient(circle at 14% 20%, rgba(22, 119, 255, 0.22), transparent 52%),
+    linear-gradient(140deg, rgba(255, 255, 255, 0.9), rgba(242, 248, 255, 0.88)),
+    var(--color-surface-elevated);
+  box-shadow: var(--shadow-strong);
   display: grid;
-  gap: 6px;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.header::after {
+  content: "";
+  position: absolute;
+  inset: auto -16% -50% auto;
+  width: 320px;
+  height: 320px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 122, 26, 0.22), transparent 66%);
+  pointer-events: none;
 }
 
 .headerRow {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 14px;
   flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
 }
 
 .title {
   margin: 0;
-  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  max-width: 22ch;
+  font-size: clamp(1.8rem, 3.8vw, 3.2rem);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  font-family: var(--font-display), var(--font-body), sans-serif;
 }
 
 .subtitle {
   margin: 0;
+  max-width: 74ch;
   color: var(--color-muted);
+  font-size: clamp(1rem, 1.8vw, 1.2rem);
+  line-height: 1.5;
+  position: relative;
+  z-index: 1;
 }
 
 .stage {
@@ -37,45 +71,60 @@
 
 .section {
   border: 1px solid var(--color-border);
-  border-radius: 12px;
-  background: var(--color-surface);
-  padding: 16px;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 88% -14%, rgba(22, 119, 255, 0.14), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(244, 249, 255, 0.84)),
+    var(--color-surface-elevated);
+  box-shadow: var(--shadow-soft);
+  padding: clamp(14px, 2.2vw, 24px);
   display: grid;
-  gap: 12px;
+  gap: 14px;
+  position: relative;
+}
+
+.section[hidden] {
+  display: none;
 }
 
 .sectionHeading {
   margin: 0;
-  font-size: 1.125rem;
+  font-size: clamp(1.14rem, 2vw, 1.45rem);
+  letter-spacing: -0.02em;
+  font-family: var(--font-display), var(--font-body), sans-serif;
 }
 
 .sectionCopy {
   margin: 0;
   color: var(--color-muted);
-  line-height: 1.45;
+  line-height: 1.46;
+  font-size: 0.98rem;
 }
 
 .setupForm {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .fieldset {
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 12px;
   display: grid;
   gap: 10px;
+  background: rgba(255, 255, 255, 0.56);
 }
 
 .legend {
-  padding: 0 6px;
-  font-weight: 600;
+  padding: 0 8px;
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .label {
-  font-size: 0.95rem;
-  font-weight: 500;
+  font-size: 0.94rem;
+  font-weight: 600;
 }
 
 .playerGrid {
@@ -89,11 +138,12 @@
 }
 
 .input {
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface) 86%, white 14%);
   color: var(--color-text);
-  padding: 8px 10px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
 }
 
 .input:disabled {
@@ -110,29 +160,63 @@
 .optionLabel {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--color-surface) 82%, white 18%);
+}
+
+.optionLabel input {
+  margin: 0;
 }
 
 .errorText {
   margin: 0;
-  color: #dc2626;
-  font-size: 0.875rem;
+  color: var(--color-danger);
+  font-size: 0.88rem;
+  font-weight: 600;
 }
 
 .gameplayHeader {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
-  gap: 10px;
+}
+
+.turnMarker {
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 8px 12px;
+  display: grid;
+  gap: 2px;
+  background: linear-gradient(120deg, rgba(255, 122, 26, 0.14), rgba(22, 119, 255, 0.14));
+  min-width: 180px;
+}
+
+.turnLabel {
+  font-size: 0.73rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.turnPlayer {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .settingsPanel {
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 12px;
   display: grid;
   gap: 10px;
+  background: color-mix(in srgb, var(--color-surface-elevated) 88%, white 12%);
 }
 
 .settingsActionRow {
@@ -142,13 +226,14 @@
 
 .rulesDetails {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 10px;
+  background: color-mix(in srgb, var(--color-surface) 92%, white 8%);
 }
 
 .rulesSummary {
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .rulesContent {
@@ -164,79 +249,102 @@
 
 .rulesSectionTitle {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
 }
 
 .rulesList {
   margin: 0;
-  padding-left: 18px;
+  padding-left: 20px;
   display: grid;
   gap: 4px;
 }
 
 .resumePrompt {
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 12px;
   display: grid;
   gap: 10px;
+  background: linear-gradient(145deg, rgba(22, 119, 255, 0.08), rgba(255, 138, 31, 0.1));
 }
 
 .bankCard {
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 20px;
   background:
-    linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(16, 185, 129, 0.18)),
+    radial-gradient(circle at 10% 18%, rgba(255, 138, 31, 0.22), transparent 50%),
+    radial-gradient(circle at 94% 84%, rgba(22, 119, 255, 0.22), transparent 52%),
+    linear-gradient(140deg, rgba(255, 255, 255, 0.9), rgba(236, 245, 255, 0.9)),
     var(--color-surface);
-  padding: 12px;
+  padding: 14px;
   display: grid;
-  gap: 4px;
+  gap: 3px;
 }
 
 .bankLabel {
   margin: 0;
   color: var(--color-muted);
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
 }
 
 .bankTotal {
-  font-size: clamp(1.75rem, 6vw, 2.5rem);
+  font-size: clamp(2.2rem, 7vw, 3.4rem);
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.bankPrompt {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--color-text);
   font-weight: 700;
 }
 
 .dicePanel {
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: 18px;
   background:
-    radial-gradient(circle at top left, rgba(8, 47, 73, 0.18), transparent 56%),
-    linear-gradient(160deg, rgba(15, 118, 110, 0.16), rgba(2, 6, 23, 0.04)),
+    radial-gradient(circle at 0% 10%, rgba(22, 119, 255, 0.16), transparent 46%),
+    linear-gradient(150deg, rgba(8, 28, 68, 0.1), rgba(255, 255, 255, 0.5)),
     var(--color-surface);
-  padding: 12px;
+  padding: 14px;
   display: grid;
   gap: 10px;
+}
+
+.dicePanelLabel {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
 }
 
 .diceRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 16px;
 }
 
 .die {
-  width: 72px;
-  height: 72px;
-  border: 1px solid rgba(15, 23, 42, 0.18);
-  border-radius: 14px;
+  width: clamp(92px, 17vw, 116px);
+  height: clamp(92px, 17vw, 116px);
+  border: 1px solid rgba(11, 24, 53, 0.24);
+  border-radius: 24px;
   background:
-    linear-gradient(145deg, #fcfdff, #dbe8f3 68%, #c7d8e8),
+    linear-gradient(145deg, #ffffff, #e1ecff 64%, #c5d8f0),
     var(--color-surface);
   box-shadow:
-    0 10px 18px rgba(15, 23, 42, 0.24),
-    inset 2px 2px 3px rgba(255, 255, 255, 0.9),
-    inset -2px -2px 3px rgba(15, 23, 42, 0.15);
+    0 18px 30px rgba(11, 24, 53, 0.24),
+    inset 3px 3px 5px rgba(255, 255, 255, 0.88),
+    inset -3px -4px 6px rgba(11, 24, 53, 0.18);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-  padding: 8px;
+  gap: clamp(4px, 0.7vw, 7px);
+  padding: clamp(10px, 1vw, 13px);
   transform-origin: center;
   transform-style: preserve-3d;
 }
@@ -246,12 +354,12 @@
 }
 
 .pip {
-  width: 10px;
-  height: 10px;
+  width: clamp(11px, 1.1vw, 14px);
+  height: clamp(11px, 1.1vw, 14px);
   border-radius: 999px;
-  background: #0f172a;
+  background: #0f1937;
   opacity: 0;
-  transform: scale(0.35);
+  transform: scale(0.32);
   transition: transform 120ms ease-out, opacity 120ms ease-out;
   justify-self: center;
   align-self: center;
@@ -264,10 +372,11 @@
 
 .manualDicePanel {
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 12px;
   display: grid;
   gap: 10px;
+  background: color-mix(in srgb, var(--color-surface-elevated) 86%, white 14%);
 }
 
 .manualDiceRow {
@@ -286,35 +395,86 @@
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .playerRow {
   border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-radius: 14px;
+  padding: 12px 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.84), rgba(233, 242, 255, 0.84)),
+    var(--color-surface);
+  position: relative;
+  overflow: hidden;
+}
+
+.playerRow::after {
+  content: "";
+  position: absolute;
+  left: -20%;
+  top: 0;
+  width: 42%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(22, 119, 255, 0.14), transparent);
+  opacity: 0;
+  transition: opacity 180ms ease;
+  pointer-events: none;
 }
 
 .playerRowActive {
-  border-color: #0284c7;
-  box-shadow: 0 0 0 1px #0284c7 inset;
+  border-color: color-mix(in srgb, var(--color-accent) 60%, var(--color-border-strong));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 72%, transparent) inset;
+}
+
+.playerRowActive::after {
+  opacity: 1;
+}
+
+.playerRowLeader {
+  border-color: color-mix(in srgb, var(--color-accent) 68%, var(--color-border));
 }
 
 .playerRowBanked {
-  opacity: 0.75;
+  opacity: 0.72;
 }
 
 .playerIdentity {
+  min-width: 0;
+  flex: 1;
   display: grid;
-  gap: 6px;
+  gap: 7px;
+}
+
+.playerNameRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .playerName {
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.leaderBadge,
+.activeBadge,
+.bankedBadge,
+.waitingBadge {
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 0.71rem;
+  font-weight: 700;
+}
+
+.leaderBadge {
+  background: color-mix(in srgb, var(--color-accent) 82%, white 18%);
+  color: var(--color-accent-contrast);
 }
 
 .playerBadgeRow {
@@ -323,41 +483,52 @@
   gap: 6px;
 }
 
-.activeBadge,
-.bankedBadge,
-.waitingBadge {
-  border-radius: 999px;
-  padding: 2px 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
 .activeBadge {
-  background: #0ea5e9;
-  color: #f8fafc;
+  background: var(--color-accent-strong);
+  color: var(--color-accent-contrast);
 }
 
 .bankedBadge {
-  background: #334155;
-  color: #e2e8f0;
+  background: #184f44;
+  color: #d8fbee;
 }
 
 .waitingBadge {
-  background: #e2e8f0;
-  color: #334155;
+  background: #d8e3f7;
+  color: #233a65;
+}
+
+.scoreTrack {
+  width: 100%;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(49, 79, 135, 0.2);
+  overflow: hidden;
+}
+
+.scoreFill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-accent), var(--color-accent-strong));
+  border-radius: inherit;
+  transition: width 260ms ease;
 }
 
 .playerScore {
   margin: 0;
-  font-weight: 600;
+  font-size: clamp(1rem, 2.1vw, 1.65rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
 .postTurnPanel {
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 12px;
   display: grid;
   gap: 10px;
+  background: linear-gradient(145deg, rgba(22, 119, 255, 0.1), rgba(255, 138, 31, 0.08));
 }
 
 .postTurnActions {
@@ -377,27 +548,101 @@
   margin: 0;
   color: var(--color-muted);
   font-size: 0.875rem;
+  font-weight: 600;
 }
 
 .button {
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.95));
   color: var(--color-text);
-  padding: 8px 12px;
+  padding: 9px 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(11, 24, 53, 0.14);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.primaryButton {
+  border-color: color-mix(in srgb, var(--color-accent-strong) 66%, black 8%);
+  background: linear-gradient(165deg, var(--color-accent), var(--color-accent-strong));
+  color: var(--color-accent-contrast);
+}
+
+.secondaryButton {
+  border-color: #0f4fb8;
+  background: linear-gradient(160deg, #2a84ff, #145fd8);
+  color: #f8fbff;
+}
+
+.subtleButton {
+  border-color: var(--color-border-strong);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(240, 246, 255, 0.88));
 }
 
 .button:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.48;
+  box-shadow: none;
+  transform: none;
 }
 
 .button:focus-visible,
 .input:focus-visible,
 .rulesSummary:focus-visible,
 .optionLabel input:focus-visible {
-  outline: 2px solid #0284c7;
+  outline: 2px solid color-mix(in srgb, var(--color-accent-strong) 85%, white 15%);
   outline-offset: 2px;
+}
+
+.confettiLayer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 40;
+}
+
+.confettiPiece {
+  --piece-left: calc((var(--confetti-piece-index) * 2.05%) + 1%);
+  position: absolute;
+  top: -12vh;
+  left: var(--piece-left);
+  width: 12px;
+  height: 18px;
+  border-radius: 2px;
+  background: hsl(var(--confetti-piece-hue) 84% 58%);
+  opacity: 0.92;
+  transform: rotate(0deg);
+  animation-name: confetti-fall;
+  animation-duration: 3800ms;
+  animation-timing-function: cubic-bezier(0.18, 0.72, 0.38, 1);
+  animation-fill-mode: forwards;
+  animation-delay: calc((var(--confetti-piece-index) % 10) * 45ms);
+}
+
+.confettiPiece:nth-child(3n) {
+  width: 10px;
+  height: 22px;
+}
+
+.confettiPiece:nth-child(4n) {
+  border-radius: 50%;
+  width: 11px;
+  height: 11px;
+}
+
+.confettiPiece:nth-child(5n) {
+  width: 14px;
+  height: 10px;
 }
 
 .visuallyHidden {
@@ -416,20 +661,52 @@
   0% {
     transform: rotateX(0deg) rotateY(0deg) scale(1);
   }
-  50% {
-    transform: rotateX(200deg) rotateY(170deg) scale(1.06);
+  48% {
+    transform: rotateX(190deg) rotateY(170deg) scale(1.08);
   }
   100% {
     transform: rotateX(360deg) rotateY(340deg) scale(1);
   }
 }
 
-@media (max-width: 560px) {
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, -8vh, 0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.94;
+  }
+  100% {
+    transform: translate3d(0, 120vh, 0) rotate(calc(760deg + var(--confetti-piece-index) * 4deg));
+    opacity: 0;
+  }
+}
+
+@keyframes confetti-fade {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.94;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 760px) {
   .page {
-    padding: 18px 12px 28px;
+    padding: 18px 12px 32px;
+    gap: 14px;
+  }
+
+  .header {
+    border-radius: 18px;
   }
 
   .section {
+    border-radius: 16px;
     padding: 12px;
   }
 
@@ -438,19 +715,33 @@
     align-items: flex-start;
   }
 
-  .actionRow .button,
-  .postTurnActions .button {
+  .playerScore {
+    font-size: 1.3rem;
+  }
+
+  .turnMarker {
     width: 100%;
   }
 }
 
-@media (min-width: 900px) {
-  .page {
-    padding: 32px 24px 56px;
+@media (max-width: 560px) {
+  .title {
+    max-width: none;
   }
 
-  .section {
-    padding: 20px;
+  .actionRow .button,
+  .postTurnActions .button {
+    width: 100%;
+  }
+
+  .diceRow {
+    justify-content: center;
+  }
+}
+
+@media (min-width: 920px) {
+  .page {
+    padding: 36px 24px 60px;
   }
 
   .playerGrid {
@@ -463,7 +754,15 @@
     animation: none;
   }
 
-  .pip {
+  .pip,
+  .scoreFill,
+  .button {
     transition: none;
+  }
+
+  .confettiPiece {
+    animation-name: confetti-fade;
+    animation-duration: 900ms;
+    animation-delay: calc((var(--confetti-piece-index) % 10) * 24ms);
   }
 }
