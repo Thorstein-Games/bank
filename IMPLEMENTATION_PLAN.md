@@ -31,18 +31,18 @@ This plan translates `SPEC.md` into incremental build phases for a client-side N
 
 ## Phase 3 - Core Game Engine (Pure Logic)
 
-- [ ] Implement a pure reducer/state-machine for turn progression and round transitions.
-- [ ] Add roll resolution logic for normal rolls that increase the communal bank by dice sum.
-- [ ] Add doubles behavior during first three turns where doubles act as normal rolls only.
-- [ ] Add doubles behavior after turn three where communal bank doubles before adding roll sum.
-- [ ] Add special handling for rolling 7 in first three turns (+70 to communal bank).
-- [ ] Add bust handling for rolling 7 after turn three that ends the round immediately.
-- [ ] Implement banking action that awards current communal bank and marks player as banked.
-- [ ] Allow multiple active players to bank after each resolved turn.
-- [ ] Skip banked players automatically when advancing turn order.
-- [ ] Implement round reset logic (bank total reset, banked markers reset, next round increment).
-- [ ] Implement game completion logic and winner calculation including tie handling.
-- [ ] Add exhaustive unit tests for all dice rules, bank flow, and round/game transitions.
+- [x] Implement a pure reducer/state-machine for turn progression and round transitions.
+- [x] Add roll resolution logic for normal rolls that increase the communal bank by dice sum.
+- [x] Add doubles behavior during first three turns where doubles act as normal rolls only.
+- [x] Add doubles behavior after turn three where communal bank doubles before adding roll sum.
+- [x] Add special handling for rolling 7 in first three turns (+70 to communal bank).
+- [x] Add bust handling for rolling 7 after turn three that ends the round immediately.
+- [x] Implement banking action that awards current communal bank and marks player as banked.
+- [x] Allow multiple active players to bank after each resolved turn.
+- [x] Skip banked players automatically when advancing turn order.
+- [x] Implement round reset logic (bank total reset, banked markers reset, next round increment).
+- [x] Implement game completion logic and winner calculation including tie handling.
+- [x] Add exhaustive unit tests for all dice rules, bank flow, and round/game transitions.
 
 ## Phase 4 - Turn Flow and Gameplay UI
 
