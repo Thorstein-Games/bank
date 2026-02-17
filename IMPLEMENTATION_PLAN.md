@@ -70,15 +70,15 @@ This plan translates `SPEC.md` into incremental build phases for a client-side N
 
 ## Phase 6 - Persistence, Resume, and Reset Flows
 
-- [ ] Persist full game state to localStorage after each meaningful state transition.
-- [ ] Persist required fields: players/order, scores, round/turn pointers, bank total, banked set, settings, dice mode, and theme preference.
-- [ ] Track in-progress roll result data so reload can skip animation and resume stable state.
-- [ ] On app load, detect saved state and show `Resume Game` vs `New Game` prompt.
-- [ ] Implement `Resume Game` to hydrate state safely and validate schema/version before use.
-- [ ] Implement `New Game` to discard existing saved run and initialize from setup.
-- [ ] Add settings action to clear saved game data explicitly.
-- [ ] Add `Play Again` flow that resets rounds/scores while preserving the player list.
-- [ ] Add tests for hydration, migration fallback, and reset behaviors.
+- [x] Persist full game state to localStorage after each meaningful state transition.
+- [x] Persist required fields: players/order, scores, round/turn pointers, bank total, banked set, settings, dice mode, and theme preference.
+- [x] Track in-progress roll result data so reload can skip animation and resume stable state.
+- [x] On app load, detect saved state and show `Resume Game` vs `New Game` prompt.
+- [x] Implement `Resume Game` to hydrate state safely and validate schema/version before use.
+- [x] Implement `New Game` to discard existing saved run and initialize from setup.
+- [x] Add settings action to clear saved game data explicitly.
+- [x] Add `Play Again` flow that resets rounds/scores while preserving the player list.
+- [x] Add tests for hydration, migration fallback, and reset behaviors.
 
 ## Phase 7 - Settings Panel, Theme, and Rules Display
 

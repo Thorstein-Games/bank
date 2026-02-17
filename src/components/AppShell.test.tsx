@@ -1,4 +1,10 @@
 import { rollDiceWithCrypto } from "../game/dice";
+import { createInitialGameState } from "@/state";
+import {
+  GAME_SAVE_SCHEMA_VERSION,
+  GAME_SAVE_STORAGE_KEY,
+  type PersistedGameSnapshot
+} from "@/state/persistence";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import AppShell from "./AppShell";
 
@@ -8,7 +14,10 @@ jest.mock("../game/dice", () => ({
 
 const mockedRollDiceWithCrypto = jest.mocked(rollDiceWithCrypto);
 
-function startGameWithTwoPlayers(options?: { diceMode?: "built-in" | "manual" }) {
+function startGameWithTwoPlayers(options?: {
+  diceMode?: "built-in" | "manual";
+  roundCount?: number;
+}) {
   fireEvent.change(screen.getByRole("textbox", { name: /Player 1/i }), {
     target: { value: "Alice" }
   });
@@ -18,6 +27,13 @@ function startGameWithTwoPlayers(options?: { diceMode?: "built-in" | "manual" })
 
   if (options?.diceMode === "manual") {
     fireEvent.click(screen.getByRole("radio", { name: "Manual input" }));
+  }
+
+  if (typeof options?.roundCount === "number") {
+    fireEvent.click(screen.getByRole("radio", { name: "Custom" }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Custom round count" }), {
+      target: { value: String(options.roundCount) }
+    });
   }
 
   fireEvent.click(screen.getByRole("button", { name: "Start Game" }));
@@ -37,6 +53,10 @@ function completeBuiltInRollAnimation() {
   act(() => {
     jest.advanceTimersByTime(800);
   });
+}
+
+function persistSnapshot(snapshot: PersistedGameSnapshot) {
+  window.localStorage.setItem(GAME_SAVE_STORAGE_KEY, JSON.stringify(snapshot));
 }
 
 describe("AppShell", () => {
@@ -145,5 +165,110 @@ describe("AppShell", () => {
 
     expect(getPlayerRow("Alice")).not.toHaveAttribute("aria-current");
     expect(getPlayerRow("Bob")).toHaveAttribute("aria-current", "true");
+  });
+
+  it("shows a resume prompt and hydrates pending roll without replaying animation", () => {
+    persistSnapshot({
+      schemaVersion: GAME_SAVE_SCHEMA_VERSION,
+      gameState: createInitialGameState({
+        playerNames: ["Alice", "Bob"],
+        roundCount: 10,
+        diceMode: "built-in",
+        theme: "system"
+      }),
+      pendingRoll: {
+        dieOne: 3,
+        dieTwo: 4
+      }
+    });
+
+    render(<AppShell />);
+
+    expect(
+      screen.getByText("Saved game found. Resume where you left off or start a new game.")
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Resume Game" }));
+
+    expect(screen.queryByText("Rolling dice...")).not.toBeInTheDocument();
+    expect(screen.getByText("Dice showing 3 and 4.")).toBeInTheDocument();
+    expect(screen.getByTestId("communal-bank-total")).toHaveTextContent("70");
+    expect(screen.getByRole("button", { name: "Bank" })).toBeEnabled();
+  });
+
+  it("falls back to setup when saved schema is incompatible", () => {
+    const incompatibleSnapshot = {
+      schemaVersion: GAME_SAVE_SCHEMA_VERSION + 1,
+      gameState: createInitialGameState({
+        playerNames: ["Alice", "Bob"],
+        roundCount: 10,
+        diceMode: "built-in",
+        theme: "system"
+      }),
+      pendingRoll: null
+    };
+    window.localStorage.setItem(
+      GAME_SAVE_STORAGE_KEY,
+      JSON.stringify(incompatibleSnapshot)
+    );
+
+    render(<AppShell />);
+
+    expect(screen.queryByRole("button", { name: "Resume Game" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Setup" })).toBeInTheDocument();
+    expect(window.localStorage.getItem(GAME_SAVE_STORAGE_KEY)).toBeNull();
+  });
+
+  it("starts a new game from setup and clears saved run from the resume prompt", () => {
+    persistSnapshot({
+      schemaVersion: GAME_SAVE_SCHEMA_VERSION,
+      gameState: createInitialGameState({
+        playerNames: ["Alice", "Bob"],
+        roundCount: 10,
+        diceMode: "built-in",
+        theme: "system"
+      }),
+      pendingRoll: null
+    });
+
+    render(<AppShell />);
+
+    fireEvent.click(screen.getByRole("button", { name: "New Game" }));
+
+    expect(screen.getByRole("heading", { name: "Setup" })).toBeInTheDocument();
+    expect(window.localStorage.getItem(GAME_SAVE_STORAGE_KEY)).toBeNull();
+  });
+
+  it("clears saved game data from the gameplay settings action", () => {
+    render(<AppShell />);
+    startGameWithTwoPlayers();
+
+    expect(window.localStorage.getItem(GAME_SAVE_STORAGE_KEY)).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear Saved Game" }));
+
+    expect(window.localStorage.getItem(GAME_SAVE_STORAGE_KEY)).toBeNull();
+  });
+
+  it("resets rounds and scores on play again while preserving player names", () => {
+    render(<AppShell />);
+    startGameWithTwoPlayers({
+      diceMode: "manual",
+      roundCount: 1
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bank Alice" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bank Bob" }));
+
+    expect(screen.getByRole("heading", { name: "End of Game" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Play Again" }));
+
+    expect(screen.getByRole("heading", { name: "Gameplay" })).toBeInTheDocument();
+    expect(screen.getByText("Round 1 of 1")).toBeInTheDocument();
+    expect(within(getPlayerRow("Alice")).getByText("Score 0")).toBeInTheDocument();
+    expect(within(getPlayerRow("Bob")).getByText("Score 0")).toBeInTheDocument();
   });
 });

@@ -1,0 +1,64 @@
+import { createInitialGameState } from "@/state";
+import {
+  GAME_SAVE_SCHEMA_VERSION,
+  GAME_SAVE_STORAGE_KEY,
+  readPersistedGameSnapshot,
+  type PersistedGameSnapshot
+} from "@/state/persistence";
+
+function buildValidSnapshot(): PersistedGameSnapshot {
+  return {
+    schemaVersion: GAME_SAVE_SCHEMA_VERSION,
+    gameState: createInitialGameState({
+      playerNames: ["Alice", "Bob"],
+      roundCount: 10,
+      diceMode: "built-in",
+      theme: "system"
+    }),
+    pendingRoll: {
+      dieOne: 2,
+      dieTwo: 5
+    }
+  };
+}
+
+describe("readPersistedGameSnapshot", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("returns a valid saved snapshot", () => {
+    const snapshot = buildValidSnapshot();
+    window.localStorage.setItem(GAME_SAVE_STORAGE_KEY, JSON.stringify(snapshot));
+
+    expect(readPersistedGameSnapshot()).toEqual(snapshot);
+  });
+
+  it("drops incompatible schema versions", () => {
+    const snapshot = {
+      ...buildValidSnapshot(),
+      schemaVersion: GAME_SAVE_SCHEMA_VERSION + 1
+    };
+    window.localStorage.setItem(GAME_SAVE_STORAGE_KEY, JSON.stringify(snapshot));
+
+    expect(readPersistedGameSnapshot()).toBeNull();
+    expect(window.localStorage.getItem(GAME_SAVE_STORAGE_KEY)).toBeNull();
+  });
+
+  it("drops malformed saved snapshots", () => {
+    const malformedSnapshot = {
+      schemaVersion: GAME_SAVE_SCHEMA_VERSION,
+      gameState: {
+        players: []
+      },
+      pendingRoll: null
+    };
+    window.localStorage.setItem(
+      GAME_SAVE_STORAGE_KEY,
+      JSON.stringify(malformedSnapshot)
+    );
+
+    expect(readPersistedGameSnapshot()).toBeNull();
+    expect(window.localStorage.getItem(GAME_SAVE_STORAGE_KEY)).toBeNull();
+  });
+});
