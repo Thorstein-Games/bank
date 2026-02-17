@@ -494,7 +494,7 @@ export default function AppShell() {
 
       <header className={styles.header}>
         <div className={styles.headerRow}>
-          <h1 className={styles.title}>Bank Dice Game</h1>
+          <h1 className={styles.title}>Play bank game online with Bank Dice Game</h1>
           <button
             className={styles.button}
             type="button"
@@ -505,7 +505,8 @@ export default function AppShell() {
           </button>
         </div>
         <p className={styles.subtitle}>
-          Configure players and options, then lock setup to begin gameplay.
+          Play bank game online in a fast multiplayer format: roll dice, grow the
+          communal bank, and choose when to secure points before busts end a round.
         </p>
       </header>
 

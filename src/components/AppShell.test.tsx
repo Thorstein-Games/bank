@@ -36,15 +36,26 @@ function openSettings() {
   fireEvent.click(screen.getByRole("button", { name: "Settings" }));
 }
 
-function startGameWithTwoPlayers(options?: {
-  diceMode?: "built-in" | "manual";
-  roundCount?: number;
-}) {
-  fireEvent.change(screen.getByRole("textbox", { name: /Player 1/i }), {
-    target: { value: "Alice" }
-  });
-  fireEvent.change(screen.getByRole("textbox", { name: /Player 2/i }), {
-    target: { value: "Bob" }
+function startGameWithPlayers(
+  playerNames: string[],
+  options?: {
+    diceMode?: "built-in" | "manual";
+    roundCount?: number;
+  }
+) {
+  if (playerNames.length !== 2) {
+    fireEvent.change(screen.getByRole("combobox", { name: "Player count" }), {
+      target: { value: String(playerNames.length) }
+    });
+  }
+
+  playerNames.forEach((playerName, index) => {
+    fireEvent.change(
+      screen.getByRole("textbox", { name: new RegExp(`Player ${index + 1}`, "i") }),
+      {
+        target: { value: playerName }
+      }
+    );
   });
 
   if (options?.diceMode === "manual" || typeof options?.roundCount === "number") {
@@ -63,6 +74,13 @@ function startGameWithTwoPlayers(options?: {
   }
 
   fireEvent.click(screen.getByRole("button", { name: "Start Game" }));
+}
+
+function startGameWithTwoPlayers(options?: {
+  diceMode?: "built-in" | "manual";
+  roundCount?: number;
+}) {
+  startGameWithPlayers(["Alice", "Bob"], options);
 }
 
 function getPlayerRow(playerName: string): HTMLElement {
@@ -113,6 +131,14 @@ describe("AppShell", () => {
     expect(
       screen.getByRole("button", { name: "Start Game" })
     ).toBeDisabled();
+  });
+
+  it("uses one primary h1 that includes the target SEO phrase", () => {
+    render(<AppShell />);
+
+    const primaryHeadings = screen.getAllByRole("heading", { level: 1 });
+    expect(primaryHeadings).toHaveLength(1);
+    expect(primaryHeadings[0]).toHaveTextContent("Play bank game online");
   });
 
   it("delays built-in roll commit until animation completes", () => {
@@ -181,6 +207,53 @@ describe("AppShell", () => {
     expect(screen.queryByText("Rolling dice...")).not.toBeInTheDocument();
     expect(bankTotal).toHaveTextContent("70");
     expect(bankButton).toBeEnabled();
+  });
+
+  it("completes a built-in full game flow with three players", () => {
+    render(<AppShell />);
+    startGameWithPlayers(["Alice", "Bob", "Carla"], { roundCount: 1 });
+
+    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
+    completeBuiltInRollAnimation();
+
+    fireEvent.click(screen.getByRole("button", { name: "Bank Alice" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bank Bob" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bank Carla" }));
+
+    expect(screen.getByRole("heading", { name: "End of Game" })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("list", { name: "Final scoreboard" })).getAllByRole(
+        "listitem"
+      )
+    ).toHaveLength(3);
+  });
+
+  it("completes a manual full game flow with four players", () => {
+    render(<AppShell />);
+    startGameWithPlayers(["Alice", "Bob", "Carla", "Dina"], {
+      diceMode: "manual",
+      roundCount: 1
+    });
+
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Die one" }), {
+      target: { value: "3" }
+    });
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Die two" }), {
+      target: { value: "4" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Bank Alice" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bank Bob" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bank Carla" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bank Dina" }));
+
+    expect(screen.getByRole("heading", { name: "End of Game" })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("list", { name: "Final scoreboard" })).getAllByRole(
+        "listitem"
+      )
+    ).toHaveLength(4);
   });
 
   it("supports gameplay keyboard shortcuts for rolling and banking", () => {
