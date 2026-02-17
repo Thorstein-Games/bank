@@ -3,6 +3,8 @@ import {
   GAME_SAVE_SCHEMA_VERSION,
   GAME_SAVE_STORAGE_KEY,
   readPersistedGameSnapshot,
+  readPersistedThemePreference,
+  THEME_PREFERENCE_STORAGE_KEY,
   type PersistedGameSnapshot
 } from "@/state/persistence";
 
@@ -60,5 +62,30 @@ describe("readPersistedGameSnapshot", () => {
 
     expect(readPersistedGameSnapshot()).toBeNull();
     expect(window.localStorage.getItem(GAME_SAVE_STORAGE_KEY)).toBeNull();
+  });
+});
+
+describe("readPersistedThemePreference", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("returns null when no explicit theme override exists", () => {
+    expect(readPersistedThemePreference()).toBeNull();
+  });
+
+  it("returns light and dark theme overrides", () => {
+    window.localStorage.setItem(THEME_PREFERENCE_STORAGE_KEY, JSON.stringify("light"));
+    expect(readPersistedThemePreference()).toBe("light");
+
+    window.localStorage.setItem(THEME_PREFERENCE_STORAGE_KEY, JSON.stringify("dark"));
+    expect(readPersistedThemePreference()).toBe("dark");
+  });
+
+  it("drops unsupported theme values", () => {
+    window.localStorage.setItem(THEME_PREFERENCE_STORAGE_KEY, JSON.stringify("system"));
+
+    expect(readPersistedThemePreference()).toBeNull();
+    expect(window.localStorage.getItem(THEME_PREFERENCE_STORAGE_KEY)).toBeNull();
   });
 });

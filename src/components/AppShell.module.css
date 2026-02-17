@@ -121,9 +121,48 @@
 .settingsPanel {
   border: 1px solid var(--color-border);
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.settingsActionRow {
   display: grid;
   gap: 6px;
+}
+
+.rulesDetails {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.rulesSummary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.rulesContent {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.rulesSection {
+  display: grid;
+  gap: 6px;
+}
+
+.rulesSectionTitle {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.rulesList {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
 }
 
 .resumePrompt {

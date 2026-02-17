@@ -15,6 +15,9 @@ import {
 
 export const GAME_SAVE_SCHEMA_VERSION = 1;
 export const GAME_SAVE_STORAGE_KEY = buildVersionedStorageKey("saved-run");
+export const THEME_PREFERENCE_STORAGE_KEY = buildVersionedStorageKey(
+  "theme-preference"
+);
 
 export interface PersistedPendingRoll {
   dieOne: number;
@@ -26,6 +29,8 @@ export interface PersistedGameSnapshot {
   gameState: GameState;
   pendingRoll: PersistedPendingRoll | null;
 }
+
+export type PersistedThemePreference = Exclude<ThemePreference, "system">;
 
 export function readPersistedGameSnapshot(): PersistedGameSnapshot | null {
   const parsedValue = readLocalStorage<unknown>(GAME_SAVE_STORAGE_KEY, null);
@@ -45,6 +50,29 @@ export function writePersistedGameSnapshot(snapshot: PersistedGameSnapshot): boo
 
 export function clearPersistedGameSnapshot(): boolean {
   return removeLocalStorage(GAME_SAVE_STORAGE_KEY);
+}
+
+export function readPersistedThemePreference(): PersistedThemePreference | null {
+  const parsedValue = readLocalStorage<unknown>(THEME_PREFERENCE_STORAGE_KEY, null);
+  if (!isPersistedThemePreference(parsedValue)) {
+    if (parsedValue !== null) {
+      removeLocalStorage(THEME_PREFERENCE_STORAGE_KEY);
+    }
+
+    return null;
+  }
+
+  return parsedValue;
+}
+
+export function writePersistedThemePreference(
+  preference: ThemePreference
+): boolean {
+  if (preference === "system") {
+    return removeLocalStorage(THEME_PREFERENCE_STORAGE_KEY);
+  }
+
+  return writeLocalStorage(THEME_PREFERENCE_STORAGE_KEY, preference);
 }
 
 function isPersistedGameSnapshot(value: unknown): value is PersistedGameSnapshot {
@@ -247,4 +275,8 @@ function isThemePreference(value: unknown): value is ThemePreference {
 
 function isGameScreen(value: unknown): value is GameScreen {
   return value === "setup" || value === "gameplay" || value === "end-of-game";
+}
+
+function isPersistedThemePreference(value: unknown): value is PersistedThemePreference {
+  return value === "light" || value === "dark";
 }

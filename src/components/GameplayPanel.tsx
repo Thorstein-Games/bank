@@ -21,7 +21,6 @@ interface GameplayPanelProps {
   onBankActivePlayer: () => void;
   onBankPlayer: (playerId: string) => void;
   onAdvanceTurn: () => void;
-  onClearSavedGame?: () => void;
 }
 
 const FACE_PIP_INDEXES: Record<number, number[]> = {
@@ -91,8 +90,7 @@ export default function GameplayPanel({
   onManualDieInputChange,
   onBankActivePlayer,
   onBankPlayer,
-  onAdvanceTurn,
-  onClearSavedGame
+  onAdvanceTurn
 }: GameplayPanelProps) {
   const activeRoundPlayers = gameState.players.filter(
     (player) => !player.hasBankedThisRound
@@ -115,27 +113,11 @@ export default function GameplayPanel({
           type="button"
           onClick={onToggleSettings}
           aria-expanded={isSettingsOpen}
-          aria-controls="settings-panel"
+          aria-controls="gameplay-settings-panel"
         >
           Settings
         </button>
       </div>
-
-      {isSettingsOpen && (
-        <aside
-          id="settings-panel"
-          className={styles.settingsPanel}
-          aria-label="Current settings"
-        >
-          <p className={styles.sectionCopy}>Dice mode: {gameState.settings.diceMode}</p>
-          <p className={styles.sectionCopy}>Theme: {gameState.settings.theme}</p>
-          {onClearSavedGame && (
-            <button className={styles.button} type="button" onClick={onClearSavedGame}>
-              Clear Saved Game
-            </button>
-          )}
-        </aside>
-      )}
 
       <section className={styles.bankCard} aria-label="Communal bank">
         <p className={styles.bankLabel}>Communal Bank Total</p>

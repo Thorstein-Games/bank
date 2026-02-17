@@ -1,37 +1,43 @@
 "use client";
 
-import {
-  MAX_PLAYERS,
-  MIN_PLAYERS,
-  ROUND_COUNT_PRESETS
-} from "@/game/constants";
-import useDiceRollController from "@/hooks/useDiceRollController";
-import type { GameScreen, GameState } from "@/game/models";
+import { MAX_PLAYERS, MIN_PLAYERS } from "@/game/constants";
+import type { GameScreen, GameState, ThemePreference } from "@/game/models";
 import { type GameAction, gameReducer } from "@/game/reducer";
+import useDiceRollController from "@/hooks/useDiceRollController";
+import {
+  buildSetupConfig,
+  createDefaultSetupState,
+  createInitialGameState,
+  resizePlayerNames,
+  resolveRoundCount,
+  validateSetup
+} from "@/state";
 import {
   clearPersistedGameSnapshot,
   GAME_SAVE_SCHEMA_VERSION,
   type PersistedGameSnapshot,
   readPersistedGameSnapshot,
-  writePersistedGameSnapshot
+  readPersistedThemePreference,
+  writePersistedGameSnapshot,
+  writePersistedThemePreference
 } from "@/state/persistence";
-import {
-  buildSetupConfig,
-  createDefaultSetupState,
-  createInitialGameState,
-  CUSTOM_ROUND_COUNT,
-  resizePlayerNames,
-  validateSetup
-} from "@/state";
 import type { ChangeEvent, FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./AppShell.module.css";
 import GameplayPanel from "./GameplayPanel";
+import SettingsPanel from "./SettingsPanel";
 
 const PLAYER_COUNT_OPTIONS = Array.from(
   { length: MAX_PLAYERS - MIN_PLAYERS + 1 },
   (_, index) => MIN_PLAYERS + index
 );
+
+function createSetupStateWithTheme(theme: ThemePreference) {
+  return {
+    ...createDefaultSetupState(),
+    theme
+  };
+}
 
 function getWinnerNames(gameState: GameState): string[] {
   return gameState.status.winnerIds
@@ -52,6 +58,8 @@ export default function AppShell() {
     () => validateSetup(setupState),
     [setupState]
   );
+  const activeTheme = gameState?.settings.theme ?? setupState.theme;
+  const hasSavedGame = Boolean(gameState || resumeSnapshot);
 
   const dispatchGameAction = useCallback((action: GameAction) => {
     setGameState((currentState) => {
@@ -83,9 +91,27 @@ export default function AppShell() {
   });
 
   useEffect(() => {
+    const persistedThemePreference = readPersistedThemePreference();
+    if (persistedThemePreference) {
+      setSetupState((currentState) => ({
+        ...currentState,
+        theme: persistedThemePreference
+      }));
+    }
+
     setResumeSnapshot(readPersistedGameSnapshot());
     setHasLoadedSavedGame(true);
   }, []);
+
+  useEffect(() => {
+    const rootElement = document.documentElement;
+    if (activeTheme === "system") {
+      rootElement.removeAttribute("data-theme");
+      return;
+    }
+
+    rootElement.setAttribute("data-theme", activeTheme);
+  }, [activeTheme]);
 
   const activeScreen: GameScreen = gameState ? gameState.status.screen : "setup";
   const showResumePrompt =
@@ -103,6 +129,8 @@ export default function AppShell() {
   );
   const canBank = Boolean(gameState && gameState.turn.hasRolledThisTurn);
   const winnerNames = gameState ? getWinnerNames(gameState) : [];
+  const setupRoundCount =
+    resolveRoundCount(setupState.roundCountOption, setupState.customRoundCount) ?? 0;
 
   useEffect(() => {
     if (!hasLoadedSavedGame || showResumePrompt) {
@@ -144,15 +172,26 @@ export default function AppShell() {
     });
   }
 
-  function handleRoundCountChange(event: ChangeEvent<HTMLInputElement>) {
-    const optionValue = event.target.value;
+  function handleThemeChange(nextTheme: ThemePreference) {
     setSetupState((currentState) => ({
       ...currentState,
-      roundCountOption:
-        optionValue === CUSTOM_ROUND_COUNT
-          ? CUSTOM_ROUND_COUNT
-          : (Number.parseInt(optionValue, 10) as (typeof ROUND_COUNT_PRESETS)[number])
+      theme: nextTheme
     }));
+    setGameState((currentState) => {
+      if (!currentState) {
+        return currentState;
+      }
+
+      return {
+        ...currentState,
+        settings: {
+          ...currentState.settings,
+          theme: nextTheme
+        }
+      };
+    });
+
+    writePersistedThemePreference(nextTheme);
   }
 
   function handleStartGame(event: FormEvent<HTMLFormElement>) {
@@ -195,14 +234,22 @@ export default function AppShell() {
 
   function handleStartNewGame() {
     resetDiceState();
-    setSetupState(createDefaultSetupState());
+    setSetupState((currentState) => createSetupStateWithTheme(currentState.theme));
     setGameState(null);
     setResumeSnapshot(null);
     setIsSettingsOpen(false);
     clearPersistedGameSnapshot();
   }
 
-  function handleClearSavedGame() {
+  function handleResetSavedGame() {
+    if (!hasSavedGame) {
+      return;
+    }
+
+    if (!window.confirm("Reset saved game data? This cannot be undone.")) {
+      return;
+    }
+
     setResumeSnapshot(null);
     clearPersistedGameSnapshot();
   }
@@ -264,9 +311,52 @@ export default function AppShell() {
           aria-labelledby="setup-heading"
           hidden={activeScreen !== "setup"}
         >
-          <h2 id="setup-heading" className={styles.sectionHeading}>
-            Setup
-          </h2>
+          <div className={styles.gameplayHeader}>
+            <h2 id="setup-heading" className={styles.sectionHeading}>
+              Setup
+            </h2>
+            <button
+              className={styles.button}
+              type="button"
+              onClick={() => setIsSettingsOpen((currentValue) => !currentValue)}
+              aria-expanded={isSettingsOpen}
+              aria-controls="setup-settings-panel"
+            >
+              Settings
+            </button>
+          </div>
+
+          <SettingsPanel
+            context="setup"
+            isOpen={isSettingsOpen}
+            theme={setupState.theme}
+            diceMode={setupState.diceMode}
+            roundCountOption={setupState.roundCountOption}
+            customRoundCount={setupState.customRoundCount}
+            roundCountError={setupValidation.roundCountError}
+            configuredRoundCount={setupRoundCount}
+            onThemeChange={handleThemeChange}
+            onDiceModeChange={(nextMode) =>
+              setSetupState((currentState) => ({
+                ...currentState,
+                diceMode: nextMode
+              }))
+            }
+            onRoundCountOptionChange={(nextOption) =>
+              setSetupState((currentState) => ({
+                ...currentState,
+                roundCountOption: nextOption
+              }))
+            }
+            onCustomRoundCountChange={(nextValue) =>
+              setSetupState((currentState) => ({
+                ...currentState,
+                customRoundCount: nextValue
+              }))
+            }
+            onResetSavedGame={hasSavedGame ? handleResetSavedGame : undefined}
+          />
+
           {showResumePrompt ? (
             <div className={styles.resumePrompt} role="dialog" aria-modal="false">
               <p className={styles.sectionCopy}>
@@ -337,148 +427,6 @@ export default function AppShell() {
                 </div>
               </fieldset>
 
-              <fieldset className={styles.fieldset}>
-                <legend className={styles.legend}>Rounds</legend>
-                <div className={styles.radioRow}>
-                  {ROUND_COUNT_PRESETS.map((preset) => (
-                    <label key={preset} className={styles.optionLabel}>
-                      <input
-                        type="radio"
-                        name="round-count"
-                        value={preset}
-                        checked={setupState.roundCountOption === preset}
-                        onChange={handleRoundCountChange}
-                      />
-                      <span>{preset} rounds</span>
-                    </label>
-                  ))}
-                  <label className={styles.optionLabel}>
-                    <input
-                      type="radio"
-                      name="round-count"
-                      value={CUSTOM_ROUND_COUNT}
-                      checked={setupState.roundCountOption === CUSTOM_ROUND_COUNT}
-                      onChange={handleRoundCountChange}
-                    />
-                    <span>Custom</span>
-                  </label>
-                </div>
-                <label className={styles.label} htmlFor="custom-round-count">
-                  Custom round count
-                </label>
-                <input
-                  id="custom-round-count"
-                  className={styles.input}
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={setupState.customRoundCount}
-                  disabled={setupState.roundCountOption !== CUSTOM_ROUND_COUNT}
-                  onChange={(event) =>
-                    setSetupState((currentState) => ({
-                      ...currentState,
-                      customRoundCount: event.target.value
-                    }))
-                  }
-                  aria-invalid={Boolean(setupValidation.roundCountError)}
-                  aria-describedby={
-                    setupValidation.roundCountError ? "custom-round-error" : undefined
-                  }
-                />
-                {setupValidation.roundCountError && (
-                  <p id="custom-round-error" className={styles.errorText} role="alert">
-                    {setupValidation.roundCountError}
-                  </p>
-                )}
-              </fieldset>
-
-              <fieldset className={styles.fieldset}>
-                <legend className={styles.legend}>Dice Mode</legend>
-                <div className={styles.radioRow}>
-                  <label className={styles.optionLabel}>
-                    <input
-                      type="radio"
-                      name="dice-mode"
-                      value="built-in"
-                      checked={setupState.diceMode === "built-in"}
-                      onChange={() =>
-                        setSetupState((currentState) => ({
-                          ...currentState,
-                          diceMode: "built-in"
-                        }))
-                      }
-                    />
-                    <span>Built-in</span>
-                  </label>
-                  <label className={styles.optionLabel}>
-                    <input
-                      type="radio"
-                      name="dice-mode"
-                      value="manual"
-                      checked={setupState.diceMode === "manual"}
-                      onChange={() =>
-                        setSetupState((currentState) => ({
-                          ...currentState,
-                          diceMode: "manual"
-                        }))
-                      }
-                    />
-                    <span>Manual input</span>
-                  </label>
-                </div>
-              </fieldset>
-
-              <fieldset className={styles.fieldset}>
-                <legend className={styles.legend}>Theme</legend>
-                <div className={styles.radioRow}>
-                  <label className={styles.optionLabel}>
-                    <input
-                      type="radio"
-                      name="theme"
-                      value="system"
-                      checked={setupState.theme === "system"}
-                      onChange={() =>
-                        setSetupState((currentState) => ({
-                          ...currentState,
-                          theme: "system"
-                        }))
-                      }
-                    />
-                    <span>System</span>
-                  </label>
-                  <label className={styles.optionLabel}>
-                    <input
-                      type="radio"
-                      name="theme"
-                      value="light"
-                      checked={setupState.theme === "light"}
-                      onChange={() =>
-                        setSetupState((currentState) => ({
-                          ...currentState,
-                          theme: "light"
-                        }))
-                      }
-                    />
-                    <span>Light</span>
-                  </label>
-                  <label className={styles.optionLabel}>
-                    <input
-                      type="radio"
-                      name="theme"
-                      value="dark"
-                      checked={setupState.theme === "dark"}
-                      onChange={() =>
-                        setSetupState((currentState) => ({
-                          ...currentState,
-                          theme: "dark"
-                        }))
-                      }
-                    />
-                    <span>Dark</span>
-                  </label>
-                </div>
-              </fieldset>
-
               <div className={styles.actionRow}>
                 <button
                   className={styles.button}
@@ -498,28 +446,41 @@ export default function AppShell() {
           hidden={activeScreen !== "gameplay"}
         >
           {gameState && (
-            <GameplayPanel
-              canRoll={canRoll}
-              canBank={canBank}
-              gameState={gameState}
-              diceOne={diceOne}
-              diceTwo={diceTwo}
-              isDiceAnimating={isDiceAnimating}
-              diceInputError={diceInputError}
-              isManualMode={isManualMode}
-              manualDieOneValue={manualDieOneValue}
-              manualDieTwoValue={manualDieTwoValue}
-              isSettingsOpen={isSettingsOpen}
-              onToggleSettings={() =>
-                setIsSettingsOpen((currentValue) => !currentValue)
-              }
-              onRoll={handleRoll}
-              onManualDieInputChange={handleManualDieInputChange}
-              onBankActivePlayer={handleBankActivePlayer}
-              onBankPlayer={handleBankPlayer}
-              onAdvanceTurn={handleAdvanceTurn}
-              onClearSavedGame={handleClearSavedGame}
-            />
+            <>
+              <SettingsPanel
+                context="gameplay"
+                isOpen={isSettingsOpen}
+                theme={gameState.settings.theme}
+                diceMode={gameState.settings.diceMode}
+                roundCountOption={setupState.roundCountOption}
+                customRoundCount={setupState.customRoundCount}
+                roundCountError={null}
+                configuredRoundCount={gameState.settings.roundCount}
+                onThemeChange={handleThemeChange}
+                onResetSavedGame={handleResetSavedGame}
+              />
+              <GameplayPanel
+                canRoll={canRoll}
+                canBank={canBank}
+                gameState={gameState}
+                diceOne={diceOne}
+                diceTwo={diceTwo}
+                isDiceAnimating={isDiceAnimating}
+                diceInputError={diceInputError}
+                isManualMode={isManualMode}
+                manualDieOneValue={manualDieOneValue}
+                manualDieTwoValue={manualDieTwoValue}
+                isSettingsOpen={isSettingsOpen}
+                onToggleSettings={() =>
+                  setIsSettingsOpen((currentValue) => !currentValue)
+                }
+                onRoll={handleRoll}
+                onManualDieInputChange={handleManualDieInputChange}
+                onBankActivePlayer={handleBankActivePlayer}
+                onBankPlayer={handleBankPlayer}
+                onAdvanceTurn={handleAdvanceTurn}
+              />
+            </>
           )}
         </section>
 

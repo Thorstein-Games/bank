@@ -3,6 +3,7 @@ import { createInitialGameState } from "@/state";
 import {
   GAME_SAVE_SCHEMA_VERSION,
   GAME_SAVE_STORAGE_KEY,
+  THEME_PREFERENCE_STORAGE_KEY,
   type PersistedGameSnapshot
 } from "@/state/persistence";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
@@ -14,6 +15,10 @@ jest.mock("../game/dice", () => ({
 
 const mockedRollDiceWithCrypto = jest.mocked(rollDiceWithCrypto);
 
+function openSettings() {
+  fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+}
+
 function startGameWithTwoPlayers(options?: {
   diceMode?: "built-in" | "manual";
   roundCount?: number;
@@ -24,6 +29,10 @@ function startGameWithTwoPlayers(options?: {
   fireEvent.change(screen.getByRole("textbox", { name: /Player 2/i }), {
     target: { value: "Bob" }
   });
+
+  if (options?.diceMode === "manual" || typeof options?.roundCount === "number") {
+    openSettings();
+  }
 
   if (options?.diceMode === "manual") {
     fireEvent.click(screen.getByRole("radio", { name: "Manual input" }));
@@ -60,6 +69,8 @@ function persistSnapshot(snapshot: PersistedGameSnapshot) {
 }
 
 describe("AppShell", () => {
+  let confirmSpy: jest.SpiedFunction<typeof window.confirm>;
+
   beforeEach(() => {
     jest.useFakeTimers();
     window.localStorage.clear();
@@ -68,11 +79,13 @@ describe("AppShell", () => {
       dieOne: 3,
       dieTwo: 4
     });
+    confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
   });
 
   afterEach(() => {
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
+    confirmSpy.mockRestore();
   });
 
   it("renders setup UI without runtime errors", () => {
@@ -239,16 +252,73 @@ describe("AppShell", () => {
     expect(window.localStorage.getItem(GAME_SAVE_STORAGE_KEY)).toBeNull();
   });
 
-  it("clears saved game data from the gameplay settings action", () => {
+  it("requires confirmation before resetting saved game data", () => {
     render(<AppShell />);
     startGameWithTwoPlayers();
 
     expect(window.localStorage.getItem(GAME_SAVE_STORAGE_KEY)).not.toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));
-    fireEvent.click(screen.getByRole("button", { name: "Clear Saved Game" }));
 
+    confirmSpy.mockReturnValueOnce(false);
+    fireEvent.click(screen.getByRole("button", { name: "Reset Saved Game" }));
+    expect(window.localStorage.getItem(GAME_SAVE_STORAGE_KEY)).not.toBeNull();
+
+    confirmSpy.mockReturnValueOnce(true);
+    fireEvent.click(screen.getByRole("button", { name: "Reset Saved Game" }));
     expect(window.localStorage.getItem(GAME_SAVE_STORAGE_KEY)).toBeNull();
+  });
+
+  it("persists theme override and applies theme immediately", () => {
+    render(<AppShell />);
+
+    expect(document.documentElement).not.toHaveAttribute("data-theme");
+
+    openSettings();
+    fireEvent.click(screen.getByRole("radio", { name: "Dark" }));
+
+    expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+    expect(window.localStorage.getItem(THEME_PREFERENCE_STORAGE_KEY)).toBe(
+      JSON.stringify("dark")
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: "System" }));
+    expect(document.documentElement).not.toHaveAttribute("data-theme");
+    expect(window.localStorage.getItem(THEME_PREFERENCE_STORAGE_KEY)).toBeNull();
+  });
+
+  it("locks dice mode during gameplay and keeps configured round count", () => {
+    render(<AppShell />);
+    startGameWithTwoPlayers({
+      diceMode: "manual",
+      roundCount: 12
+    });
+
+    expect(screen.getByText("Round 1 of 12")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Manual dice input" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+
+    expect(screen.getByText(/Dice mode is locked for this game:/i)).toHaveTextContent(
+      "manual"
+    );
+    expect(
+      screen.getByText(/Configured rounds for this game:/i)
+    ).toHaveTextContent("12");
+  });
+
+  it("expands and collapses the rules section in settings", () => {
+    render(<AppShell />);
+
+    openSettings();
+
+    const rulesDetails = screen.getByTestId("setup-rules");
+    expect(rulesDetails).not.toHaveAttribute("open");
+
+    fireEvent.click(screen.getByText("Rules"));
+
+    expect(rulesDetails).toHaveAttribute("open");
+    expect(screen.getByText("Round Flow")).toBeInTheDocument();
   });
 
   it("resets rounds and scores on play again while preserving player names", () => {

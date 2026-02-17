@@ -82,14 +82,14 @@ This plan translates `SPEC.md` into incremental build phases for a client-side N
 
 ## Phase 7 - Settings Panel, Theme, and Rules Display
 
-- [ ] Build a settings panel accessible during gameplay and from setup context.
-- [ ] Add theme controls that apply immediately and persist selected preference.
-- [ ] Default to system theme when user has not selected explicit light/dark override.
-- [ ] Add dice mode setting display and enforce mode consistency for the active game.
-- [ ] Add round-count configuration controls as defined by spec.
-- [ ] Add `Reset Saved Game` control with confirmation to avoid accidental data loss.
-- [ ] Add a collapsible, read-only Rules section sourced from a static rules definition.
-- [ ] Add tests for theme persistence, settings updates, and rules panel interaction.
+- [x] Build a settings panel accessible during gameplay and from setup context.
+- [x] Add theme controls that apply immediately and persist selected preference.
+- [x] Default to system theme when user has not selected explicit light/dark override.
+- [x] Add dice mode setting display and enforce mode consistency for the active game.
+- [x] Add round-count configuration controls as defined by spec.
+- [x] Add `Reset Saved Game` control with confirmation to avoid accidental data loss.
+- [x] Add a collapsible, read-only Rules section sourced from a static rules definition.
+- [x] Add tests for theme persistence, settings updates, and rules panel interaction.
 
 ## Phase 8 - Audio, Accessibility, and Responsive UX
 
