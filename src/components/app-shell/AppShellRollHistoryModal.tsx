@@ -71,24 +71,37 @@ export default function AppShellRollHistoryModal({
                 ) : (
                   <>
                     <p className={styles.rollHistorySummary}>
-                      Busts {roundHistory.bustCount} | Doubles{" "}
-                      {roundHistory.doublesCount} | Sevens{" "}
+                      Doubles {roundHistory.doublesCount} | Sevens{" "}
                       {roundHistory.sevenCount} | Max bank $
                       {roundHistory.maxBankAfterRoll}
                     </p>
                     <ol className={styles.rollHistoryEntryList}>
-                      {roundHistory.entries.map((entry) => {
+                      {roundHistory.entries.map((entry, entryIndex) => {
                         const playerName =
                           playerNameById.get(entry.playerId) ??
                           "Unknown player";
+                        const previousBankTotal =
+                          roundHistory.entries[entryIndex - 1]
+                            ?.bankTotalAfterRoll ?? 0;
 
                         return (
                           <li
                             key={`${roundHistory.roundNumber}-${entry.turnNumber}-${entry.playerId}`}
                           >
-                            <em>{playerName}</em> rolled {entry.total}. Bank{" "}
-                            <em>${entry.bankTotalAfterRoll}</em>.
-                            <strong>{entry.isBust ? " Bust." : ""}</strong>
+                            <em>{playerName}</em> rolled {entry.dieOne} and{" "}
+                            {entry.dieTwo} for $
+                            {entry.isDouble && entry.turnNumber > 3
+                              ? previousBankTotal
+                              : entry.total}
+                            .{" "}
+                            {entry.isBust ? (
+                              <strong>Bust.</strong>
+                            ) : (
+                              <>
+                                Bank total:{" "}
+                                <em> ${entry.bankTotalAfterRoll}.</em>
+                              </>
+                            )}
                           </li>
                         );
                       })}

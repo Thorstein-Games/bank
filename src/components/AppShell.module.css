@@ -328,6 +328,14 @@
   line-height: 0.9;
   font-weight: 400;
   letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums lining-nums;
+  display: inline-block;
+}
+
+.bankTotalTicking {
+  animation: bank-total-ticker 210ms cubic-bezier(0.16, 1, 0.3, 1);
+  text-shadow: 0 0 26px
+    color-mix(in srgb, var(--color-status-banked-bg) 28%, transparent);
 }
 
 .bankPrompt {
@@ -498,7 +506,7 @@
   padding: 12px;
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 8px;
   border-radius: 24px;
   background: color-mix(
@@ -506,6 +514,72 @@
     var(--color-surface) 96%,
     var(--color-mix-ref) 4%
   );
+}
+
+.scoreboardItem {
+  position: relative;
+}
+
+.scoreboardItemBankable {
+  isolation: auto;
+}
+
+.bankTooltip {
+  position: absolute;
+  left: 50%;
+  top: calc(100% - 9px);
+  transform: translate(-50%, -4px) scale(0.97);
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid
+    color-mix(in srgb, var(--color-accent) 68%, var(--color-border));
+  background: linear-gradient(
+    145deg,
+    color-mix(
+      in srgb,
+      var(--color-surface-elevated) 86%,
+      var(--color-accent) 14%
+    ),
+    color-mix(in srgb, var(--color-surface) 86%, var(--color-mix-ref) 14%)
+  );
+  color: var(--color-text);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 10px 20px rgba(11, 24, 53, 0.2);
+  transition:
+    opacity 160ms ease,
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 2;
+}
+
+.bankTooltip::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -6px;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg);
+  border-left: 1px solid
+    color-mix(in srgb, var(--color-accent) 60%, var(--color-border));
+  border-top: 1px solid
+    color-mix(in srgb, var(--color-accent) 60%, var(--color-border));
+  background: color-mix(
+    in srgb,
+    var(--color-surface-elevated) 80%,
+    var(--color-accent) 20%
+  );
+}
+
+.scoreboardItemBankable:hover .bankTooltip,
+.scoreboardItemBankable:focus-within .bankTooltip {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
 }
 
 .endScreen {
@@ -850,6 +924,11 @@
     var(--color-mix-ref) 18%
   );
   color: var(--color-accent-contrast);
+  opacity: 0;
+}
+
+.leaderBadgeActive {
+  opacity: 1;
 }
 
 .winnerBadge {
@@ -906,12 +985,36 @@
   white-space: nowrap;
 }
 
+.playerScoreWrap {
+  position: relative;
+  display: inline-block;
+}
+
+.playerScoreGain {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -75%);
+  color: #1c8e67;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: player-score-gain 1200ms ease-out forwards;
+}
+
 .playerPotentialScore {
   margin: 2px 0 0;
   font-size: 0.82rem;
   font-weight: 700;
   color: var(--color-muted);
   letter-spacing: 0.01em;
+  opacity: 0;
+}
+
+.showPlayerPotentialScore {
+  opacity: 1;
 }
 
 .actionRow {
@@ -950,6 +1053,7 @@
     var(--color-border) 8%
   );
   color: var(--color-text);
+  cursor: pointer;
   padding: 11px 14px;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -1188,6 +1292,43 @@
   }
 }
 
+@keyframes player-score-gain {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -55%);
+  }
+
+  18% {
+    opacity: 1;
+    transform: translate(-50%, -92%);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -170%);
+  }
+}
+
+@keyframes bank-total-ticker {
+  0% {
+    opacity: 0.84;
+    transform: translateY(11%) scale(1.01);
+    filter: blur(1.4px);
+  }
+
+  60% {
+    opacity: 1;
+    transform: translateY(-2%) scale(1.02);
+    filter: blur(0.2px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
 @media (min-width: 640px) {
   .endActionRow {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1253,6 +1394,15 @@
   .gameplayRoundValue {
     font-size: 1.6rem;
   }
+
+  .playerScoreWrap {
+    display: block;
+    float: right;
+  }
+
+  .scoreboard {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1260,8 +1410,17 @@
     animation: none;
   }
 
+  .bankTotalTicking {
+    animation: none;
+  }
+
+  .playerScoreGain {
+    animation: none;
+  }
+
   .pip,
   .scoreFill,
+  .bankTooltip,
   .button {
     transition: none;
   }

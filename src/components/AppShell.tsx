@@ -18,7 +18,7 @@ import {
   type PersistedGameSnapshot,
 } from "@/state/persistence";
 import type { FormEvent } from "react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styles from "./AppShell.module.css";
 import ConfettiBurst from "./ConfettiBurst";
 import GameplayPanel from "./GameplayPanel";
@@ -32,9 +32,7 @@ import {
   buildFinalStandings,
   buildRoundHistoryStats,
   buildSetupStateFromCompletedGame,
-  buildWinnerSummary,
   createSetupStateWithTheme,
-  getWinnerNames,
   type LiveAnnouncement,
 } from "./app-shell/appShellUtils";
 import useAppShellBootstrap from "./app-shell/useAppShellBootstrap";
@@ -42,6 +40,12 @@ import useAppShellRuntimeEffects from "./app-shell/useAppShellRuntimeEffects";
 import useAppShellSetupHandlers from "./app-shell/useAppShellSetupHandlers";
 
 const AUTO_ADVANCE_DELAY_MS = 300;
+const BANKED_SCORE_POPUP_DURATION_MS = 1200;
+
+type BankedScorePopup = {
+  amount: number;
+  sequenceId: number;
+};
 
 export default function AppShell() {
   const [setupState, setSetupState] = useState(createDefaultSetupState);
@@ -53,16 +57,28 @@ export default function AppShell() {
   const [isRollHistoryOpen, setIsRollHistoryOpen] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
-  const [politeAnnouncement, setPoliteAnnouncement] = useState<LiveAnnouncement>({
-    id: 0,
-    text: "",
-  });
-  const [assertiveAnnouncement, setAssertiveAnnouncement] = useState<LiveAnnouncement>({
-    id: 0,
-    text: "",
-  });
+  const [politeAnnouncement, setPoliteAnnouncement] =
+    useState<LiveAnnouncement>({
+      id: 0,
+      text: "",
+    });
+  const [assertiveAnnouncement, setAssertiveAnnouncement] =
+    useState<LiveAnnouncement>({
+      id: 0,
+      text: "",
+    });
   const [isConfettiActive, setIsConfettiActive] = useState(false);
+  const [bankedScorePopups, setBankedScorePopups] = useState<
+    Record<string, BankedScorePopup>
+  >({});
   const previousScreenRef = useRef<GameScreen>("setup");
+  const bankedScorePopupTimeoutByPlayerIdRef = useRef<
+    Map<string, ReturnType<typeof setTimeout>>
+  >(new Map());
+  const bankedScorePopupSequenceRef = useRef(0);
+  const activeScreen: GameScreen = gameState
+    ? gameState.status.screen
+    : "setup";
 
   const announcePolite = useCallback((text: string) => {
     setPoliteAnnouncement((currentAnnouncement) => ({
@@ -78,7 +94,31 @@ export default function AppShell() {
     }));
   }, []);
 
-  const setupValidation = useMemo(() => validateSetup(setupState), [setupState]);
+  const clearBankedScorePopupTimeouts = useCallback(() => {
+    bankedScorePopupTimeoutByPlayerIdRef.current.forEach((timeoutId) => {
+      clearTimeout(timeoutId);
+    });
+    bankedScorePopupTimeoutByPlayerIdRef.current.clear();
+  }, []);
+
+  useEffect(
+    () => clearBankedScorePopupTimeouts,
+    [clearBankedScorePopupTimeouts],
+  );
+
+  useEffect(() => {
+    if (activeScreen === "gameplay" && gameState) {
+      return;
+    }
+
+    clearBankedScorePopupTimeouts();
+    setBankedScorePopups({});
+  }, [activeScreen, clearBankedScorePopupTimeouts, gameState]);
+
+  const setupValidation = useMemo(
+    () => validateSetup(setupState),
+    [setupState],
+  );
   const activeTheme = gameState?.settings.theme ?? setupState.theme;
   const hasSavedGame = Boolean(gameState || resumeSnapshot);
 
@@ -151,7 +191,6 @@ export default function AppShell() {
     onRollResolved: handleRollResolved,
   });
 
-  const activeScreen: GameScreen = gameState ? gameState.status.screen : "setup";
   const showResumePrompt =
     hasLoadedSavedGame && gameState === null && resumeSnapshot !== null;
   const activePlayer = gameState
@@ -159,28 +198,24 @@ export default function AppShell() {
     : null;
   const canRoll = Boolean(
     gameState &&
-      activePlayer &&
-      !gameState.turn.hasRolledThisTurn &&
-      !activePlayer.hasBankedThisRound &&
-      !isDiceAnimating &&
-      (!isManualMode || isManualOutcomeSelected),
+    activePlayer &&
+    !gameState.turn.hasRolledThisTurn &&
+    !activePlayer.hasBankedThisRound &&
+    !isDiceAnimating &&
+    (!isManualMode || isManualOutcomeSelected),
   );
   const canBank = Boolean(
     gameState &&
-      gameState.round.turnCountInRound >= EARLY_TURN_WINDOW &&
-      gameState.round.bankTotal > 0 &&
-      !isDiceAnimating,
+    gameState.round.turnCountInRound >= EARLY_TURN_WINDOW &&
+    gameState.round.bankTotal > 0 &&
+    !isDiceAnimating,
   );
   const shouldAutoAdvanceTurn = Boolean(
     activeScreen === "gameplay" &&
-      gameState?.turn.hasRolledThisTurn &&
-      !isDiceAnimating,
+    gameState?.turn.hasRolledThisTurn &&
+    !isDiceAnimating,
   );
 
-  const winnerNames = useMemo(
-    () => (gameState ? getWinnerNames(gameState) : []),
-    [gameState],
-  );
   const winnerIdSet = useMemo(
     () => new Set(gameState?.status.winnerIds ?? []),
     [gameState],
@@ -188,11 +223,6 @@ export default function AppShell() {
   const finalStandings = useMemo(
     () => (gameState ? buildFinalStandings(gameState) : []),
     [gameState],
-  );
-  const winningScore = finalStandings[0]?.score ?? 0;
-  const winnerSummary = useMemo(
-    () => buildWinnerSummary(winnerNames, winningScore),
-    [winnerNames, winningScore],
   );
 
   const playerNameById = useMemo(() => {
@@ -202,7 +232,10 @@ export default function AppShell() {
 
     return new Map(gameState.players.map((player) => [player.id, player.name]));
   }, [gameState]);
-  const rollHistoryRounds = useMemo(() => gameState?.rollHistory ?? [], [gameState]);
+  const rollHistoryRounds = useMemo(
+    () => gameState?.rollHistory ?? [],
+    [gameState],
+  );
   const hasRollHistory = useMemo(
     () => rollHistoryRounds.some((round) => round.entries.length > 0),
     [rollHistoryRounds],
@@ -242,6 +275,36 @@ export default function AppShell() {
         playerId,
       });
       playBankSound();
+      const existingTimeoutId =
+        bankedScorePopupTimeoutByPlayerIdRef.current.get(playerId);
+      if (existingTimeoutId) {
+        clearTimeout(existingTimeoutId);
+      }
+      bankedScorePopupSequenceRef.current += 1;
+      const currentSequenceId = bankedScorePopupSequenceRef.current;
+
+      setBankedScorePopups((currentPopups) => ({
+        ...currentPopups,
+        [playerId]: {
+          amount: bankedAmount,
+          sequenceId: currentSequenceId,
+        },
+      }));
+
+      const timeoutId = setTimeout(() => {
+        setBankedScorePopups((currentPopups) => {
+          if (!currentPopups[playerId]) {
+            return currentPopups;
+          }
+
+          const nextPopups = { ...currentPopups };
+          delete nextPopups[playerId];
+          return nextPopups;
+        });
+        bankedScorePopupTimeoutByPlayerIdRef.current.delete(playerId);
+      }, BANKED_SCORE_POPUP_DURATION_MS);
+      bankedScorePopupTimeoutByPlayerIdRef.current.set(playerId, timeoutId);
+
       announcePolite(
         `${player.name} banked ${bankedAmount}. New score: ${nextScore}.`,
       );
@@ -459,6 +522,7 @@ export default function AppShell() {
               onRoll={handleRoll}
               onManualOutcomeSelect={handleManualOutcomeSelect}
               onBankPlayer={handleBankPlayer}
+              bankedScorePopups={bankedScorePopups}
               onOpenSettings={openSettings}
               onOpenRollHistory={openRollHistory}
               isSettingsOpen={isSettingsOpen}
@@ -471,7 +535,6 @@ export default function AppShell() {
             activeScreen={activeScreen}
             finalStandings={finalStandings}
             winnerIdSet={winnerIdSet}
-            winnerSummary={winnerSummary}
             endGameStats={endGameStats}
             onOpenRollHistory={openRollHistory}
             onPlayAgain={handlePlayAgain}

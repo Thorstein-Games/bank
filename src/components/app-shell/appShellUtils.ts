@@ -200,18 +200,3 @@ export function buildFinalStandings(gameState: GameState) {
     return leftPlayer.name.localeCompare(rightPlayer.name);
   });
 }
-
-export function buildWinnerSummary(
-  winnerNames: string[],
-  winningScore: number,
-): string {
-  if (winnerNames.length === 0) {
-    return "No winner was recorded for this game.";
-  }
-
-  if (winnerNames.length === 1) {
-    return `${winnerNames[0]} takes the game with $${winningScore}.`;
-  }
-
-  return `${winnerNames.join(" and ")} tie for first at $${winningScore}.`;
-}

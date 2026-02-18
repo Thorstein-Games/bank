@@ -6,7 +6,6 @@ interface AppShellEndGameScreenProps {
   activeScreen: GameScreen;
   finalStandings: Player[];
   winnerIdSet: Set<string>;
-  winnerSummary: string;
   endGameStats: EndGameStats;
   onOpenRollHistory: () => void;
   onPlayAgain: () => void;
@@ -17,7 +16,6 @@ export default function AppShellEndGameScreen({
   activeScreen,
   finalStandings,
   winnerIdSet,
-  winnerSummary,
   endGameStats,
   onOpenRollHistory,
   onPlayAgain,
@@ -35,7 +33,6 @@ export default function AppShellEndGameScreen({
           <h2 id="end-of-game-heading" className={styles.sectionHeading}>
             End of Game
           </h2>
-          <p className={styles.endSummary}>{winnerSummary}</p>
           <div className={styles.actionRow}>
             <button
               className={buildClassNames(styles.button, styles.subtleButton)}

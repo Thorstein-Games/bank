@@ -106,6 +106,12 @@ function completeAutoAdvanceDelay() {
   });
 }
 
+function completeRoundTotalTickerAnimation() {
+  act(() => {
+    jest.advanceTimersByTime(290);
+  });
+}
+
 function playBuiltInTurn() {
   fireEvent.click(screen.getByRole("button", { name: "Roll" }));
   completeBuiltInRollAnimation();
@@ -198,6 +204,7 @@ describe("AppShell", () => {
     act(() => {
       jest.advanceTimersByTime(1);
     });
+    completeRoundTotalTickerAnimation();
 
     expect(screen.getByRole("button", { name: "Roll" })).toBeDisabled();
     expect(getAliceBankButton()).toBeDisabled();
@@ -254,6 +261,50 @@ describe("AppShell", () => {
     expect(
       within(getPlayerRow("Bob")).getByText("Potential $210"),
     ).toBeInTheDocument();
+  });
+
+  it("shows a temporary green banked amount popup above score after banking", () => {
+    render(<AppShell />);
+    startGameWithTwoPlayers({ diceMode: "manual" });
+
+    playManualTurn(3);
+    completeAutoAdvanceDelay();
+    playManualTurn(4);
+    completeAutoAdvanceDelay();
+    playManualTurn(5);
+    completeAutoAdvanceDelay();
+
+    bankPlayer("Alice");
+
+    expect(within(getPlayerRow("Alice")).getByText("+$12")).toBeInTheDocument();
+
+    act(() => {
+      jest.advanceTimersByTime(1501);
+    });
+
+    expect(within(getPlayerRow("Alice")).queryByText("+$12")).toBeNull();
+  });
+
+  it("renders a bank tooltip only for players who can currently bank", () => {
+    render(<AppShell />);
+    startGameWithTwoPlayers({ diceMode: "manual" });
+
+    expect(within(getPlayerRow("Alice")).queryByText("Bank")).toBeNull();
+    expect(within(getPlayerRow("Bob")).queryByText("Bank")).toBeNull();
+
+    playManualTurn(3);
+    completeAutoAdvanceDelay();
+    playManualTurn(4);
+    completeAutoAdvanceDelay();
+    playManualTurn(5);
+    completeAutoAdvanceDelay();
+
+    expect(within(getPlayerRow("Alice")).getByText("Bank")).toBeInTheDocument();
+    expect(within(getPlayerRow("Bob")).getByText("Bank")).toBeInTheDocument();
+
+    bankPlayer("Alice");
+    expect(within(getPlayerRow("Alice")).queryByText("Bank")).toBeNull();
+    expect(within(getPlayerRow("Bob")).getByText("Bank")).toBeInTheDocument();
   });
 
   it("completes a built-in full game flow with three players", () => {

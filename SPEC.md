@@ -190,6 +190,8 @@ If reload occurs mid-roll, rolled values are stored and animation skipped.
 - Player list and scores visible.
 - Current player highlighted.
 - Round total shown as the most prominent in-game element.
+- Round total value animates upward with a fast ticker-style count-up when the
+  communal bank increases.
 - Banked players marked.
 - Buttons:
   - Settings
