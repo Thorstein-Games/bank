@@ -13,7 +13,11 @@
   border: 1px solid var(--color-border-strong);
   border-radius: 24px;
   padding: clamp(18px, 3vw, 30px);
-  background: color-mix(in srgb, var(--color-surface-elevated) 88%, white 12%);
+  background: color-mix(
+    in srgb,
+    var(--color-surface-elevated) 88%,
+    var(--color-mix-ref) 12%
+  );
   box-shadow: var(--shadow-strong);
   display: grid;
   gap: 12px;
@@ -89,7 +93,11 @@
 .section {
   border: 1px solid var(--color-border);
   border-radius: 16px;
-  background: color-mix(in srgb, var(--color-surface-elevated) 90%, white 10%);
+  background: color-mix(
+    in srgb,
+    var(--color-surface-elevated) 90%,
+    var(--color-mix-ref) 10%
+  );
   box-shadow: var(--shadow-soft);
   padding: 12px;
   display: grid;
@@ -126,7 +134,7 @@
   padding: 12px;
   display: grid;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.56);
+  background: var(--color-fieldset-bg);
 }
 
 .legend {
@@ -154,7 +162,11 @@
 .input {
   border: 1px solid var(--color-border-strong);
   border-radius: 10px;
-  background: color-mix(in srgb, var(--color-surface) 86%, white 14%);
+  background: color-mix(
+    in srgb,
+    var(--color-surface) 86%,
+    var(--color-mix-ref) 14%
+  );
   color: var(--color-text);
   padding: 10px 12px;
   font-size: 0.95rem;
@@ -178,7 +190,11 @@
   border: 1px solid var(--color-border);
   border-radius: 999px;
   padding: 6px 10px;
-  background: color-mix(in srgb, var(--color-surface) 82%, white 18%);
+  background: color-mix(
+    in srgb,
+    var(--color-surface) 82%,
+    var(--color-mix-ref) 18%
+  );
 }
 
 .optionLabel input {
@@ -224,7 +240,11 @@
   padding: 12px;
   display: grid;
   gap: 10px;
-  background: color-mix(in srgb, var(--color-surface-elevated) 88%, white 12%);
+  background: color-mix(
+    in srgb,
+    var(--color-surface-elevated) 88%,
+    var(--color-mix-ref) 12%
+  );
 }
 
 .settingsActionRow {
@@ -236,7 +256,11 @@
   border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 10px;
-  background: color-mix(in srgb, var(--color-surface) 92%, white 8%);
+  background: color-mix(
+    in srgb,
+    var(--color-surface) 92%,
+    var(--color-mix-ref) 8%
+  );
 }
 
 .rulesSummary {
@@ -351,17 +375,13 @@
 .die {
   width: clamp(116px, 21vw, 154px);
   height: clamp(116px, 21vw, 154px);
-  border: 1px solid rgba(11, 24, 53, 0.24);
+  border: 1px solid var(--color-die-edge);
   border-radius: 24px;
-  background: color-mix(
-    in srgb,
-    var(--color-surface) 82%,
-    var(--color-border) 18%
-  );
+  background: var(--color-die-face);
   box-shadow:
-    0 18px 30px rgba(11, 24, 53, 0.24),
-    inset 3px 3px 5px rgba(255, 255, 255, 0.88),
-    inset -3px -4px 6px rgba(11, 24, 53, 0.18);
+    0 18px 30px var(--color-die-shadow-drop),
+    inset 3px 3px 5px var(--color-die-inset-highlight),
+    inset -3px -4px 6px var(--color-die-inset-shade);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: clamp(4px, 0.7vw, 7px);
@@ -399,7 +419,11 @@
   padding: 12px;
   display: grid;
   gap: 10px;
-  background: color-mix(in srgb, var(--color-surface-elevated) 86%, white 14%);
+  background: color-mix(
+    in srgb,
+    var(--color-surface-elevated) 86%,
+    var(--color-mix-ref) 14%
+  );
 }
 
 .manualDiceButtons {
@@ -411,7 +435,11 @@
 .manualDiceButton {
   border: 1px solid var(--color-border-strong);
   border-radius: 10px;
-  background: color-mix(in srgb, var(--color-surface) 86%, white 14%);
+  background: color-mix(
+    in srgb,
+    var(--color-surface) 86%,
+    var(--color-mix-ref) 14%
+  );
   color: var(--color-text);
   padding: 10px 8px;
   font-size: 0.95rem;
@@ -423,7 +451,11 @@
 }
 
 .manualDiceButton:hover {
-  background: color-mix(in srgb, var(--color-surface) 76%, white 24%);
+  background: color-mix(
+    in srgb,
+    var(--color-surface) 76%,
+    var(--color-mix-ref) 24%
+  );
 }
 
 .manualDiceButton:disabled {
@@ -433,12 +465,20 @@
 
 .manualDiceButtonSelected {
   border-color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 20%, white 80%);
+  background: color-mix(
+    in srgb,
+    var(--color-accent) 20%,
+    var(--color-mix-ref) 80%
+  );
 }
 
 .manualDiceButtonRed {
   border-color: var(--color-error);
-  background: color-mix(in srgb, var(--color-error) 20%, white 80%);
+  background: color-mix(
+    in srgb,
+    var(--color-error) 20%,
+    var(--color-mix-ref) 80%
+  );
   color: var(--color-error);
 }
 
@@ -461,7 +501,11 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   border-radius: 24px;
-  background: color-mix(in srgb, var(--color-surface) 96%, white 4%);
+  background: color-mix(
+    in srgb,
+    var(--color-surface) 96%,
+    var(--color-mix-ref) 4%
+  );
 }
 
 .endScreen {
@@ -481,7 +525,7 @@
     ),
     linear-gradient(
       145deg,
-      color-mix(in srgb, var(--color-surface) 88%, white 12%),
+      color-mix(in srgb, var(--color-surface) 88%, var(--color-mix-ref) 12%),
       color-mix(in srgb, var(--color-surface-elevated) 90%, var(--color-accent) 10%)
     );
   box-shadow: 0 10px 28px rgba(11, 24, 53, 0.14);
@@ -550,7 +594,7 @@
     linear-gradient(
       150deg,
       color-mix(in srgb, #f0b64e 16%, var(--color-surface)) 0%,
-      color-mix(in srgb, var(--color-surface) 92%, white 8%) 100%
+      color-mix(in srgb, var(--color-surface) 92%, var(--color-mix-ref) 8%) 100%
     );
 }
 
@@ -690,12 +734,16 @@
 }
 
 .leaderBadge {
-  background: color-mix(in srgb, var(--color-accent) 82%, white 18%);
+  background: color-mix(
+    in srgb,
+    var(--color-accent) 82%,
+    var(--color-mix-ref) 18%
+  );
   color: var(--color-accent-contrast);
 }
 
 .winnerBadge {
-  background: color-mix(in srgb, #f0b64e 88%, white 12%);
+  background: color-mix(in srgb, #f0b64e 88%, var(--color-mix-ref) 12%);
   color: #274352;
   display: inline-flex;
   align-items: center;
@@ -728,7 +776,7 @@
   width: 100%;
   height: 7px;
   border-radius: 999px;
-  background: rgba(49, 79, 135, 0.2);
+  background: var(--color-track-bg);
   overflow: hidden;
 }
 
@@ -840,7 +888,7 @@
 .optionLabel input:focus-visible,
 .settingsModalCloseButton:focus-visible {
   outline: 2px solid
-    color-mix(in srgb, var(--color-accent-strong) 85%, white 15%);
+    color-mix(in srgb, var(--color-accent-strong) 85%, var(--color-mix-ref) 15%);
   outline-offset: 2px;
 }
 
@@ -848,7 +896,7 @@
   position: fixed;
   inset: 0;
   z-index: 30;
-  background: rgba(11, 24, 53, 0.38);
+  background: var(--color-backdrop);
   display: grid;
   place-items: center;
   padding: 16px;
@@ -883,7 +931,11 @@
   font-size: 1.4rem;
   line-height: 1;
   color: var(--color-text);
-  background: color-mix(in srgb, var(--color-surface) 80%, white 20%);
+  background: color-mix(
+    in srgb,
+    var(--color-surface) 80%,
+    var(--color-mix-ref) 20%
+  );
   cursor: pointer;
 }
 
