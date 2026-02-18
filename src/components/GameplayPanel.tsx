@@ -204,7 +204,7 @@ export default function GameplayPanel({
       [...gameState.players].sort((a, b) => {
         if (a.hasBankedThisRound && !b.hasBankedThisRound) return 1;
         if (!a.hasBankedThisRound && b.hasBankedThisRound) return -1;
-        return 0;
+        return b.score - a.score || 0;
       }),
     [gameState.players],
   );
