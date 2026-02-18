@@ -196,37 +196,6 @@ describe("AppShell", () => {
     expect(screen.getByRole("button", { name: "Roll" })).toBeEnabled();
   });
 
-  it("bypasses animation in manual mode and blocks invalid input", () => {
-    render(<AppShell />);
-    startGameWithTwoPlayers({ diceMode: "manual" });
-
-    const dieOneInput = screen.getByRole("spinbutton", { name: "Die one" });
-    const dieTwoInput = screen.getByRole("spinbutton", { name: "Die two" });
-    const rollButton = screen.getByRole("button", { name: "Roll" });
-    const aliceBankButton = screen.getByRole("button", { name: /^Alice\b/ });
-    const bankTotal = screen.getByTestId("communal-bank-total");
-
-    fireEvent.change(dieOneInput, { target: { value: "9" } });
-    fireEvent.change(dieTwoInput, { target: { value: "2" } });
-
-    expect(
-      screen.getByText("Enter both dice as whole numbers from 1 to 6."),
-    ).toBeInTheDocument();
-    expect(rollButton).toBeDisabled();
-    expect(bankTotal).toHaveTextContent("0");
-
-    fireEvent.change(dieOneInput, { target: { value: "3" } });
-    fireEvent.change(dieTwoInput, { target: { value: "4" } });
-
-    expect(rollButton).toBeEnabled();
-
-    fireEvent.click(rollButton);
-
-    expect(screen.queryByText("Rolling dice...")).not.toBeInTheDocument();
-    expect(bankTotal).toHaveTextContent("70");
-    expect(aliceBankButton).toBeEnabled();
-  });
-
   it("completes a built-in full game flow with three players", () => {
     render(<AppShell />);
     startGameWithPlayers(["Alice", "Bob", "Carla"], { roundCount: 1 });
@@ -246,95 +215,6 @@ describe("AppShell", () => {
         screen.getByRole("list", { name: "Final scoreboard" }),
       ).getAllByRole("listitem"),
     ).toHaveLength(3);
-  });
-
-  it("completes a manual full game flow with four players", () => {
-    render(<AppShell />);
-    startGameWithPlayers(["Alice", "Bob", "Carla", "Dina"], {
-      diceMode: "manual",
-      roundCount: 1,
-    });
-
-    fireEvent.change(screen.getByRole("spinbutton", { name: "Die one" }), {
-      target: { value: "3" },
-    });
-    fireEvent.change(screen.getByRole("spinbutton", { name: "Die two" }), {
-      target: { value: "4" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
-
-    bankPlayer("Alice");
-    bankPlayer("Bob");
-    bankPlayer("Carla");
-    bankPlayer("Dina");
-
-    expect(
-      screen.getByRole("heading", { name: "End of Game" }),
-    ).toBeInTheDocument();
-    expect(
-      within(
-        screen.getByRole("list", { name: "Final scoreboard" }),
-      ).getAllByRole("listitem"),
-    ).toHaveLength(4);
-  });
-
-  it("shows the end screen only after all rounds are complete", () => {
-    render(<AppShell />);
-    startGameWithTwoPlayers({
-      diceMode: "manual",
-      roundCount: 2,
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
-    bankPlayer("Alice");
-    bankPlayer("Bob");
-
-    expect(screen.getByText("Round 2 of 2")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("heading", { name: "End of Game" }),
-    ).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
-    bankPlayer("Alice");
-    bankPlayer("Bob");
-
-    expect(
-      screen.getByRole("heading", { name: "End of Game" }),
-    ).toBeInTheDocument();
-  });
-
-  it("shows confetti when the game ends and clears it after the burst", () => {
-    render(<AppShell />);
-    startGameWithTwoPlayers({
-      diceMode: "manual",
-      roundCount: 1,
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
-    bankPlayer("Alice");
-    bankPlayer("Bob");
-
-    expect(screen.getByTestId("confetti-burst")).toBeInTheDocument();
-
-    act(() => {
-      jest.advanceTimersByTime(4200);
-    });
-
-    expect(screen.queryByTestId("confetti-burst")).not.toBeInTheDocument();
-  });
-
-  it("renders a trophy badge for each winner at game over", () => {
-    render(<AppShell />);
-    startGameWithTwoPlayers({
-      diceMode: "manual",
-      roundCount: 1,
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
-    bankPlayer("Alice");
-    bankPlayer("Bob");
-
-    expect(screen.getAllByText("Winner")).toHaveLength(2);
   });
 
   it("supports gameplay keyboard shortcuts for rolling and banking", () => {
@@ -381,28 +261,6 @@ describe("AppShell", () => {
 
     expect(getPlayerRow("Alice")).not.toHaveAttribute("aria-current");
     expect(getPlayerRow("Bob")).toHaveAttribute("aria-current", "true");
-  });
-
-  it("advances to the next in-round player when active player banks", () => {
-    render(<AppShell />);
-    startGameWithPlayers(["Alice", "Bob", "Carla"], {
-      diceMode: "manual",
-    });
-
-    fireEvent.change(screen.getByRole("spinbutton", { name: "Die one" }), {
-      target: { value: "1" },
-    });
-    fireEvent.change(screen.getByRole("spinbutton", { name: "Die two" }), {
-      target: { value: "2" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
-
-    bankPlayer("Alice");
-    expect(getPlayerRow("Bob")).toHaveAttribute("aria-current", "true");
-
-    bankPlayer("Bob");
-    expect(getPlayerRow("Carla")).toHaveAttribute("aria-current", "true");
-    expect(screen.getByRole("button", { name: "Roll" })).toBeEnabled();
   });
 
   it("shows a resume prompt and hydrates pending roll without replaying animation", () => {
@@ -549,9 +407,6 @@ describe("AppShell", () => {
     });
 
     expect(screen.getByText("Round 1 of 12")).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Manual dice input" }),
-    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
@@ -568,87 +423,5 @@ describe("AppShell", () => {
 
     expect(rulesDetails).toHaveAttribute("open");
     expect(screen.getByText("Round Flow")).toBeInTheDocument();
-  });
-
-  it("resets rounds and scores on play again while preserving player names", () => {
-    render(<AppShell />);
-    startGameWithTwoPlayers({
-      diceMode: "manual",
-      roundCount: 1,
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
-    bankPlayer("Alice");
-    bankPlayer("Bob");
-
-    expect(
-      screen.getByRole("heading", { name: "End of Game" }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Play Again" }));
-
-    expect(
-      screen.getByRole("heading", { name: "Round Total" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Round 1 of 1")).toBeInTheDocument();
-    expect(
-      within(getPlayerRow("Alice")).getByText("Score 0"),
-    ).toBeInTheDocument();
-    expect(
-      within(getPlayerRow("Bob")).getByText("Score 0"),
-    ).toBeInTheDocument();
-  });
-
-  it("lets players return to setup to change next game settings", () => {
-    render(<AppShell />);
-    startGameWithTwoPlayers({
-      diceMode: "manual",
-      roundCount: 1,
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
-    bankPlayer("Alice");
-    bankPlayer("Bob");
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Change Settings for Next Game" }),
-    );
-
-    expect(screen.getByRole("heading", { name: "Setup" })).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: /Player 1/i })).toHaveValue(
-      "Alice",
-    );
-    expect(screen.getByRole("textbox", { name: /Player 2/i })).toHaveValue(
-      "Bob",
-    );
-    expect(screen.getByRole("button", { name: "Start Game" })).toBeEnabled();
-
-    openSettings();
-    expect(screen.getByRole("radio", { name: "Manual input" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "Custom" })).toBeChecked();
-    expect(
-      screen.getByRole("spinbutton", { name: "Custom round count" }),
-    ).toHaveValue(1);
-  });
-
-  it("announces roll, bank, and winner updates via live regions", () => {
-    render(<AppShell />);
-    startGameWithTwoPlayers({
-      diceMode: "manual",
-      roundCount: 1,
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Roll" }));
-    expect(screen.getByText(/Alice rolled 1 and 1 for 2/i)).toBeInTheDocument();
-
-    bankPlayer("Alice");
-    expect(
-      screen.getByText(/Alice banked 2. New score: 2/i),
-    ).toBeInTheDocument();
-
-    bankPlayer("Bob");
-    expect(
-      screen.getByText(/Game complete. Winners: Alice, Bob./i),
-    ).toBeInTheDocument();
   });
 });

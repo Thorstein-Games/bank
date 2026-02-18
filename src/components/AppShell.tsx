@@ -209,14 +209,13 @@ export default function AppShell() {
     isDiceAnimating,
     pendingRoll,
     isManualMode,
-    isManualInputValid,
+    isManualOutcomeSelected,
     diceInputError,
-    manualDieOneValue,
-    manualDieTwoValue,
+    selectedOutcome,
     resetDiceState,
     setStableDiceDisplay,
     handleRoll,
-    handleManualDieInputChange,
+    handleManualOutcomeSelect,
   } = useDiceRollController({
     gameState,
     dispatchGameAction,
@@ -277,7 +276,7 @@ export default function AppShell() {
     !gameState.turn.hasRolledThisTurn &&
     !activePlayer.hasBankedThisRound &&
     !isDiceAnimating &&
-    (!isManualMode || isManualInputValid),
+    (!isManualMode || isManualOutcomeSelected),
   );
   const canBank = Boolean(
     gameState && gameState.round.bankTotal > 0 && !isDiceAnimating,
@@ -291,6 +290,30 @@ export default function AppShell() {
     () => new Set(gameState?.status.winnerIds ?? []),
     [gameState],
   );
+  const winnerNames = useMemo(
+    () => (gameState ? getWinnerNames(gameState) : []),
+    [gameState],
+  );
+  const finalStandings = useMemo(() => {
+    if (!gameState) {
+      return [];
+    }
+
+    return [...gameState.players].sort((leftPlayer, rightPlayer) => {
+      if (leftPlayer.score !== rightPlayer.score) {
+        return rightPlayer.score - leftPlayer.score;
+      }
+
+      return leftPlayer.name.localeCompare(rightPlayer.name);
+    });
+  }, [gameState]);
+  const winningScore = finalStandings[0]?.score ?? 0;
+  const winnerSummary =
+    winnerNames.length === 0
+      ? "No winner was recorded for this game."
+      : winnerNames.length === 1
+        ? `${winnerNames[0]} takes the game with ${winningScore} points.`
+        : `${winnerNames.join(" and ")} tie for first at ${winningScore} points.`;
   const handleBankPlayer = useCallback(
     (playerId: string) => {
       if (!gameState || gameState.round.bankTotal < 1 || isDiceAnimating) {
@@ -891,10 +914,9 @@ export default function AppShell() {
               isDiceAnimating={isDiceAnimating}
               diceInputError={diceInputError}
               isManualMode={isManualMode}
-              manualDieOneValue={manualDieOneValue}
-              manualDieTwoValue={manualDieTwoValue}
+              selectedOutcome={selectedOutcome}
               onRoll={handleRoll}
-              onManualDieInputChange={handleManualDieInputChange}
+              onManualOutcomeSelect={handleManualOutcomeSelect}
               onBankPlayer={handleBankPlayer}
               onOpenSettings={() => setIsSettingsOpen(true)}
               isSettingsOpen={isSettingsOpen}
@@ -907,42 +929,49 @@ export default function AppShell() {
           aria-labelledby="end-of-game-heading"
           hidden={activeScreen !== "end-of-game"}
         >
-          <h2 id="end-of-game-heading" className={styles.sectionHeading}>
-            End of Game
-          </h2>
-          {gameState && (
-            <>
-              <ol className={styles.scoreboard} aria-label="Final scoreboard">
-                {gameState.players.map((player) => {
+          <div className={styles.endScreen}>
+            <div className={styles.endHero}>
+              <p className={styles.endKicker}>Match Complete</p>
+              <h2 id="end-of-game-heading" className={styles.sectionHeading}>
+                End of Game
+              </h2>
+              {gameState && <p className={styles.endSummary}>{winnerSummary}</p>}
+            </div>
+            {gameState && (
+              <ol
+                className={styles.endScoreboard}
+                aria-label="Final scoreboard"
+              >
+                {finalStandings.map((player, index) => {
                   const isWinner = winnerIdSet.has(player.id);
 
                   return (
                     <li
                       key={player.id}
                       className={buildButtonClassNames(
-                        styles.playerRow,
-                        isWinner ? styles.playerRowWinner : "",
+                        styles.endPlayerCard,
+                        isWinner ? styles.endPlayerCardWinner : "",
                       )}
                     >
-                      <div className={styles.playerNameRow}>
-                        <span className={styles.playerName}>
-                          {player.name}{" "}
-                        </span>
+                      <p className={styles.endPlacement}>#{index + 1}</p>
+                      <div className={styles.endPlayerNameRow}>
+                        <span className={styles.playerName}>{player.name}</span>
                         {isWinner && (
                           <span className={styles.winnerBadge}>
-                            🏆
+                            <span aria-hidden="true">🏆</span>
                             <span>Winner</span>
                           </span>
                         )}
                       </div>
-                      <span className={styles.playerScore}>{player.score}</span>
+                      <p className={styles.endScoreLabel}>Final score</p>
+                      <p className={styles.endPlayerScore}>{player.score}</p>
                     </li>
                   );
                 })}
               </ol>
-            </>
-          )}
-          <div className={styles.actionRow}>
+            )}
+          </div>
+          <div className={buildButtonClassNames(styles.actionRow, styles.endActionRow)}>
             <button
               className={buildButtonClassNames(
                 styles.button,

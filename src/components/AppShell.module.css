@@ -402,6 +402,46 @@
   background: color-mix(in srgb, var(--color-surface-elevated) 86%, white 14%);
 }
 
+.manualDiceButtons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+  gap: 8px;
+}
+
+.manualDiceButton {
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface) 86%, white 14%);
+  color: var(--color-text);
+  padding: 10px 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.manualDiceButton:hover {
+  background: color-mix(in srgb, var(--color-surface) 76%, white 24%);
+}
+
+.manualDiceButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.manualDiceButtonSelected {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 20%, white 80%);
+}
+
+.manualDiceButtonRed {
+  border-color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 20%, white 80%);
+  color: var(--color-error);
+}
+
 .manualDiceRow {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -422,6 +462,127 @@
   gap: 8px;
   border-radius: 24px;
   background: color-mix(in srgb, var(--color-surface) 96%, white 4%);
+}
+
+.endScreen {
+  display: grid;
+  gap: 14px;
+}
+
+.endHero {
+  border: 1px solid color-mix(in srgb, var(--color-accent) 42%, var(--color-border));
+  border-radius: 18px;
+  padding: clamp(14px, 3vw, 20px);
+  background:
+    radial-gradient(
+      circle at top right,
+      color-mix(in srgb, var(--color-accent) 26%, transparent) 0%,
+      transparent 42%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--color-surface) 88%, white 12%),
+      color-mix(in srgb, var(--color-surface-elevated) 90%, var(--color-accent) 10%)
+    );
+  box-shadow: 0 10px 28px rgba(11, 24, 53, 0.14);
+}
+
+.endKicker {
+  margin: 0 0 4px;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.endSummary {
+  margin: 8px 0 0;
+  max-width: 44ch;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--color-text) 88%, var(--color-muted));
+}
+
+.endScoreboard {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 10px;
+}
+
+.endPlayerCard {
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 12px;
+  background: color-mix(
+    in srgb,
+    var(--color-surface) 90%,
+    var(--color-surface-elevated) 10%
+  );
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  position: relative;
+  overflow: hidden;
+  animation: end-card-enter 300ms ease both;
+}
+
+.endPlayerCard::after {
+  content: "";
+  position: absolute;
+  inset: auto -18% -42% auto;
+  width: 120px;
+  height: 120px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  pointer-events: none;
+}
+
+.endPlayerCardWinner {
+  border-color: color-mix(in srgb, #f0b64e 72%, var(--color-border));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #f0b64e 70%, transparent) inset,
+    0 10px 20px rgba(240, 182, 78, 0.18);
+  background:
+    linear-gradient(
+      150deg,
+      color-mix(in srgb, #f0b64e 16%, var(--color-surface)) 0%,
+      color-mix(in srgb, var(--color-surface) 92%, white 8%) 100%
+    );
+}
+
+.endPlacement {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.endPlayerNameRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.endScoreLabel {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.endPlayerScore {
+  margin: 0;
+  font-size: clamp(1.55rem, 6vw, 2.2rem);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.025em;
 }
 
 .playerRow {
@@ -594,6 +755,19 @@
   align-items: center;
 }
 
+.endActionRow {
+  margin-top: 2px;
+  display: grid;
+  gap: 10px;
+}
+
+.endActionRow .button {
+  width: 100%;
+  justify-content: center;
+  min-height: 52px;
+  border-radius: 16px;
+}
+
 .shortcutHint {
   margin: 0;
   color: var(--color-muted);
@@ -747,6 +921,30 @@
   }
   100% {
     transform: rotateX(360deg) rotateY(340deg) scale(1);
+  }
+}
+
+@keyframes end-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 640px) {
+  .endActionRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .endPlayerCard {
+    animation: none;
   }
 }
 

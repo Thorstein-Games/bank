@@ -1,9 +1,8 @@
 import {
   BUST_TOTAL,
-  DIE_MAX,
   DIE_MIN,
   EARLY_SEVEN_BONUS,
-  EARLY_TURN_WINDOW
+  EARLY_TURN_WINDOW,
 } from "@/game/constants";
 import { type DiceValues, rollDiceWithCrypto } from "@/game/dice";
 import type { GameState } from "@/game/models";
@@ -13,17 +12,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const DICE_ANIMATION_DURATION_MS = 800;
 const DICE_ANIMATION_STEP_MS = 100;
 
-const DEFAULT_MANUAL_DICE_INPUTS = {
-  dieOne: String(DIE_MIN),
-  dieTwo: String(DIE_MIN)
-};
 const DEFAULT_DICE_DISPLAY = {
   dieOne: DIE_MIN,
   dieTwo: DIE_MIN,
-  isAnimating: false
+  isAnimating: false,
 };
 
-export type ManualDieField = "dieOne" | "dieTwo";
+export type ManualOutcome = number | "doubles";
 
 interface UseDiceRollControllerParams {
   gameState: GameState | null;
@@ -46,41 +41,42 @@ interface UseDiceRollControllerResult {
   isDiceAnimating: boolean;
   pendingRoll: DiceValues | null;
   isManualMode: boolean;
-  isManualInputValid: boolean;
+  isManualOutcomeSelected: boolean;
   diceInputError: string | null;
-  manualDieOneValue: string;
-  manualDieTwoValue: string;
+  selectedOutcome: ManualOutcome | null;
   resetDiceState: () => void;
   setStableDiceDisplay: (diceValues: DiceValues | null) => void;
   handleRoll: () => void;
-  handleManualDieInputChange: (field: ManualDieField, nextValue: string) => void;
+  handleManualOutcomeSelect: (outcome: ManualOutcome) => void;
 }
 
-function parseManualDieInput(value: string): number | null {
-  const trimmedValue = value.trim();
-  if (!/^\d+$/.test(trimmedValue)) {
-    return null;
+function getDiceFromOutcome(outcome: ManualOutcome): {
+  dieOne: number;
+  dieTwo: number;
+} {
+  if (outcome === "doubles") {
+    return { dieOne: 6, dieTwo: 6 };
   }
-
-  const parsedValue = Number.parseInt(trimmedValue, 10);
-  if (parsedValue < DIE_MIN || parsedValue > DIE_MAX) {
-    return null;
-  }
-
-  return parsedValue;
-}
-
-function getManualDiceInputError(dieOne: number | null, dieTwo: number | null): string | null {
-  if (dieOne === null || dieTwo === null) {
-    return `Enter both dice as whole numbers from ${DIE_MIN} to ${DIE_MAX}.`;
-  }
-
-  return null;
+  // For sums, use predefined combinations
+  const combinations: Record<number, { dieOne: number; dieTwo: number }> = {
+    2: { dieOne: 1, dieTwo: 1 },
+    3: { dieOne: 1, dieTwo: 2 },
+    4: { dieOne: 1, dieTwo: 3 },
+    5: { dieOne: 1, dieTwo: 4 },
+    6: { dieOne: 1, dieTwo: 5 },
+    7: { dieOne: 1, dieTwo: 6 },
+    8: { dieOne: 2, dieTwo: 6 },
+    9: { dieOne: 3, dieTwo: 6 },
+    10: { dieOne: 4, dieTwo: 6 },
+    11: { dieOne: 5, dieTwo: 6 },
+    12: { dieOne: 6, dieTwo: 6 },
+  };
+  return combinations[outcome] || { dieOne: 1, dieTwo: 1 };
 }
 
 function buildRollResolutionFeedback(
   gameState: GameState,
-  diceValues: DiceValues
+  diceValues: DiceValues,
 ): RollResolutionFeedback {
   const total = diceValues.dieOne + diceValues.dieTwo;
   const isDouble = diceValues.dieOne === diceValues.dieTwo;
@@ -93,7 +89,7 @@ function buildRollResolutionFeedback(
         dieTwo: diceValues.dieTwo,
         total,
         nextBankTotal: gameState.round.bankTotal + EARLY_SEVEN_BONUS,
-        isBust: false
+        isBust: false,
       };
     }
 
@@ -102,7 +98,7 @@ function buildRollResolutionFeedback(
       dieTwo: diceValues.dieTwo,
       total,
       nextBankTotal: gameState.round.bankTotal,
-      isBust: true
+      isBust: true,
     };
   }
 
@@ -112,7 +108,7 @@ function buildRollResolutionFeedback(
       dieTwo: diceValues.dieTwo,
       total,
       nextBankTotal: gameState.round.bankTotal * 2 + total,
-      isBust: false
+      isBust: false,
     };
   }
 
@@ -121,7 +117,7 @@ function buildRollResolutionFeedback(
     dieTwo: diceValues.dieTwo,
     total,
     nextBankTotal: gameState.round.bankTotal + total,
-    isBust: false
+    isBust: false,
   };
 }
 
@@ -129,17 +125,21 @@ export default function useDiceRollController({
   gameState,
   dispatchGameAction,
   onBuiltInRollStart,
-  onRollResolved
+  onRollResolved,
 }: UseDiceRollControllerParams): UseDiceRollControllerResult {
   const [diceDisplay, setDiceDisplay] = useState(DEFAULT_DICE_DISPLAY);
   const [pendingRoll, setPendingRoll] = useState<DiceValues | null>(null);
-  const [manualDiceInputs, setManualDiceInputs] = useState(
-    DEFAULT_MANUAL_DICE_INPUTS
+  const [selectedOutcome, setSelectedOutcome] = useState<ManualOutcome | null>(
+    null,
   );
   const [builtInDiceError, setBuiltInDiceError] = useState<string | null>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const diceAnimationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const diceAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const diceAnimationIntervalRef = useRef<ReturnType<
+    typeof setInterval
+  > | null>(null);
+  const diceAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const clearDiceAnimationTimers = useCallback(() => {
     if (diceAnimationIntervalRef.current !== null) {
@@ -156,7 +156,10 @@ export default function useDiceRollController({
   useEffect(() => () => clearDiceAnimationTimers(), [clearDiceAnimationTimers]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    if (
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    ) {
       return;
     }
 
@@ -174,18 +177,17 @@ export default function useDiceRollController({
   }, []);
 
   const isManualMode = gameState?.settings.diceMode === "manual";
-  const manualDieOne = parseManualDieInput(manualDiceInputs.dieOne);
-  const manualDieTwo = parseManualDieInput(manualDiceInputs.dieTwo);
-  const manualDiceInputError = isManualMode
-    ? getManualDiceInputError(manualDieOne, manualDieTwo)
-    : null;
-  const diceInputError = isManualMode ? manualDiceInputError : builtInDiceError;
+  const isManualOutcomeSelected = selectedOutcome !== null;
+  const diceInputError =
+    isManualMode && !isManualOutcomeSelected
+      ? "Select a dice outcome."
+      : builtInDiceError;
 
   const resetDiceState = useCallback(() => {
     clearDiceAnimationTimers();
     setPendingRoll(null);
     setDiceDisplay(DEFAULT_DICE_DISPLAY);
-    setManualDiceInputs(DEFAULT_MANUAL_DICE_INPUTS);
+    setSelectedOutcome(null);
     setBuiltInDiceError(null);
   }, [clearDiceAnimationTimers]);
 
@@ -198,20 +200,35 @@ export default function useDiceRollController({
           ? {
               dieOne: diceValues.dieOne,
               dieTwo: diceValues.dieTwo,
-              isAnimating: false
+              isAnimating: false,
             }
-          : DEFAULT_DICE_DISPLAY
+          : DEFAULT_DICE_DISPLAY,
       );
     },
-    [clearDiceAnimationTimers]
+    [clearDiceAnimationTimers],
   );
 
-  function handleManualDieInputChange(field: ManualDieField, nextValue: string) {
-    setManualDiceInputs((currentState) => ({
-      ...currentState,
-      [field]: nextValue
-    }));
+  function handleManualOutcomeSelect(outcome: ManualOutcome) {
+    if (!gameState || diceDisplay.isAnimating) {
+      return;
+    }
+
+    setSelectedOutcome(outcome);
     setBuiltInDiceError(null);
+
+    const diceValues = getDiceFromOutcome(outcome);
+
+    setPendingRoll(null);
+    setDiceDisplay({
+      ...diceValues,
+      isAnimating: false,
+    });
+    onRollResolved?.(buildRollResolutionFeedback(gameState, diceValues));
+    dispatchGameAction({
+      type: "resolve-roll",
+      dieOne: diceValues.dieOne,
+      dieTwo: diceValues.dieTwo,
+    });
   }
 
   function handleRoll() {
@@ -220,29 +237,23 @@ export default function useDiceRollController({
     }
 
     if (gameState.settings.diceMode === "manual") {
-      const dieOne = parseManualDieInput(manualDiceInputs.dieOne);
-      const dieTwo = parseManualDieInput(manualDiceInputs.dieTwo);
-      if (dieOne === null || dieTwo === null) {
+      if (!selectedOutcome) {
         return;
       }
+
+      const diceValues = getDiceFromOutcome(selectedOutcome);
 
       setBuiltInDiceError(null);
       setPendingRoll(null);
       setDiceDisplay({
-        dieOne,
-        dieTwo,
-        isAnimating: false
+        ...diceValues,
+        isAnimating: false,
       });
-      onRollResolved?.(
-        buildRollResolutionFeedback(gameState, {
-          dieOne,
-          dieTwo
-        })
-      );
+      onRollResolved?.(buildRollResolutionFeedback(gameState, diceValues));
       dispatchGameAction({
         type: "resolve-roll",
-        dieOne,
-        dieTwo
+        dieOne: diceValues.dieOne,
+        dieTwo: diceValues.dieTwo,
       });
       return;
     }
@@ -270,27 +281,27 @@ export default function useDiceRollController({
 
     const rollResolutionFeedback = buildRollResolutionFeedback(
       gameState,
-      committedRoll
+      committedRoll,
     );
 
     if (prefersReducedMotion) {
       setPendingRoll(null);
       setDiceDisplay({
         ...committedRoll,
-        isAnimating: false
+        isAnimating: false,
       });
       onRollResolved?.(rollResolutionFeedback);
       dispatchGameAction({
         type: "resolve-roll",
         dieOne: committedRoll.dieOne,
-        dieTwo: committedRoll.dieTwo
+        dieTwo: committedRoll.dieTwo,
       });
       return;
     }
 
     setDiceDisplay({
       ...previewRoll,
-      isAnimating: true
+      isAnimating: true,
     });
 
     diceAnimationIntervalRef.current = setInterval(() => {
@@ -298,12 +309,12 @@ export default function useDiceRollController({
         const nextPreviewRoll = rollDiceWithCrypto();
         setDiceDisplay({
           ...nextPreviewRoll,
-          isAnimating: true
+          isAnimating: true,
         });
       } catch {
         setDiceDisplay((currentState) => ({
           ...currentState,
-          isAnimating: true
+          isAnimating: true,
         }));
       }
     }, DICE_ANIMATION_STEP_MS);
@@ -313,13 +324,13 @@ export default function useDiceRollController({
       setPendingRoll(null);
       setDiceDisplay({
         ...committedRoll,
-        isAnimating: false
+        isAnimating: false,
       });
       onRollResolved?.(rollResolutionFeedback);
       dispatchGameAction({
         type: "resolve-roll",
         dieOne: committedRoll.dieOne,
-        dieTwo: committedRoll.dieTwo
+        dieTwo: committedRoll.dieTwo,
       });
     }, DICE_ANIMATION_DURATION_MS);
   }
@@ -330,13 +341,12 @@ export default function useDiceRollController({
     isDiceAnimating: diceDisplay.isAnimating,
     pendingRoll,
     isManualMode,
-    isManualInputValid: !manualDiceInputError,
+    isManualOutcomeSelected,
     diceInputError,
-    manualDieOneValue: manualDiceInputs.dieOne,
-    manualDieTwoValue: manualDiceInputs.dieTwo,
+    selectedOutcome,
     resetDiceState,
     setStableDiceDisplay,
     handleRoll,
-    handleManualDieInputChange
+    handleManualOutcomeSelect,
   };
 }

@@ -275,7 +275,8 @@ After final round:
 
 - Winners displayed.
 - Winners are marked with a trophy badge on the final scoreboard.
-- Final scoreboard shown.
+- End screen includes a result summary banner announcing the winner or tie result.
+- Final scoreboard shown as ranked player cards (position + final score).
 - Side-cannon confetti burst animation plays once.
 - “Play Again” and “Change Settings for Next Game” buttons available.
 

@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import styles from "./AppShell.module.css";
 import SettingsIconButton from "./SettingsIconButton";
 
-type ManualDieField = "dieOne" | "dieTwo";
+type ManualOutcome = number | "doubles";
 
 interface GameplayPanelProps {
   canRoll: boolean;
@@ -14,10 +14,9 @@ interface GameplayPanelProps {
   isDiceAnimating: boolean;
   diceInputError: string | null;
   isManualMode: boolean;
-  manualDieOneValue: string;
-  manualDieTwoValue: string;
+  selectedOutcome: ManualOutcome | null;
   onRoll: () => void;
-  onManualDieInputChange: (field: ManualDieField, nextValue: string) => void;
+  onManualOutcomeSelect: (outcome: ManualOutcome) => void;
   onBankPlayer: (playerId: string) => void;
   onOpenSettings: () => void;
   isSettingsOpen: boolean;
@@ -88,10 +87,9 @@ export default function GameplayPanel({
   isDiceAnimating,
   diceInputError,
   isManualMode,
-  manualDieOneValue,
-  manualDieTwoValue,
+  selectedOutcome,
   onRoll,
-  onManualDieInputChange,
+  onManualOutcomeSelect,
   onBankPlayer,
   onOpenSettings,
   isSettingsOpen,
@@ -146,72 +144,59 @@ export default function GameplayPanel({
         </output>
       </section>
 
-      <section className={styles.dicePanel} aria-label="Dice tray">
-        <button
-          className={styles.diceRollButton}
-          type="button"
-          onClick={onRoll}
-          disabled={!canRoll}
-          aria-label={isDiceAnimating ? "Rolling..." : "Roll"}
-          aria-keyshortcuts="R"
-        >
-          <div className={styles.diceRow} data-testid="dice-tray">
-            {renderDieFace(diceOne, isDiceAnimating, "Die one")}
-            {renderDieFace(diceTwo, isDiceAnimating, "Die two")}
-          </div>
-        </button>
-      </section>
+      {!isManualMode && (
+        <section className={styles.dicePanel} aria-label="Dice tray">
+          <button
+            className={styles.diceRollButton}
+            type="button"
+            onClick={onRoll}
+            disabled={!canRoll}
+            aria-label={isDiceAnimating ? "Rolling..." : "Roll"}
+            aria-keyshortcuts="R"
+          >
+            <div className={styles.diceRow} data-testid="dice-tray">
+              {renderDieFace(diceOne, isDiceAnimating, "Die one")}
+              {renderDieFace(diceTwo, isDiceAnimating, "Die two")}
+            </div>
+          </button>
+        </section>
+      )}
 
       {isManualMode && (
         <section
           className={styles.manualDicePanel}
-          aria-label="Manual dice input"
+          aria-label="Manual dice outcome selection"
         >
-          <h3 className={styles.sectionHeading}>Manual dice input</h3>
-          <div className={styles.manualDiceRow}>
-            <label className={styles.manualDiceField} htmlFor="manual-die-one">
-              <span className={styles.label}>Die one</span>
-              <input
-                id="manual-die-one"
-                className={styles.input}
-                type="number"
-                min={1}
-                max={6}
-                step={1}
-                inputMode="numeric"
-                value={manualDieOneValue}
-                onChange={(event) =>
-                  onManualDieInputChange("dieOne", event.target.value)
+          <h3 className={styles.sectionHeading}>Select dice outcome</h3>
+          <div className={styles.manualDiceButtons}>
+            {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((sum) => (
+              <button
+                key={sum}
+                type="button"
+                className={`${styles.manualDiceButton} ${selectedOutcome === sum ? styles.manualDiceButtonSelected : ""} ${gameState.round.currentRound > 3 && sum === 7 ? styles.manualDiceButtonRed : ""}`}
+                onClick={() => onManualOutcomeSelect(sum)}
+                disabled={
+                  gameState.round.currentRound > 3 && (sum === 2 || sum === 12)
                 }
-                aria-invalid={Boolean(diceInputError)}
-                aria-describedby={
-                  diceInputError ? "manual-dice-error" : undefined
-                }
-              />
-            </label>
-            <label className={styles.manualDiceField} htmlFor="manual-die-two">
-              <span className={styles.label}>Die two</span>
-              <input
-                id="manual-die-two"
-                className={styles.input}
-                type="number"
-                min={1}
-                max={6}
-                step={1}
-                inputMode="numeric"
-                value={manualDieTwoValue}
-                onChange={(event) =>
-                  onManualDieInputChange("dieTwo", event.target.value)
-                }
-                aria-invalid={Boolean(diceInputError)}
-                aria-describedby={
-                  diceInputError ? "manual-dice-error" : undefined
-                }
-              />
-            </label>
+                aria-pressed={selectedOutcome === sum}
+                aria-label={`Select sum ${sum}`}
+              >
+                {sum}
+              </button>
+            ))}
+            <button
+              type="button"
+              className={`${styles.manualDiceButton} ${selectedOutcome === "doubles" ? styles.manualDiceButtonSelected : ""}`}
+              onClick={() => onManualOutcomeSelect("doubles")}
+              disabled={gameState.round.currentRound <= 3}
+              aria-pressed={selectedOutcome === "doubles"}
+              aria-label="Select doubles"
+            >
+              Doubles
+            </button>
           </div>
           {diceInputError && (
-            <p id="manual-dice-error" className={styles.errorText} role="alert">
+            <p className={styles.errorText} role="alert">
               {diceInputError}
             </p>
           )}
