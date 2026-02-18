@@ -101,6 +101,12 @@ describe("createInitialGameState", () => {
       hasRolledThisTurn: false,
       lastRoll: null
     });
+    expect(gameState.rollHistory).toEqual([
+      {
+        roundNumber: 1,
+        entries: []
+      }
+    ]);
     expect(gameState.settings).toEqual({
       roundCount: 15,
       diceMode: "manual",

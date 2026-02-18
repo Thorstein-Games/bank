@@ -8,7 +8,7 @@ export const GAME_RULE_SECTIONS: RuleSection[] = [
     title: "Round Flow",
     points: [
       "Each round starts with a communal bank of 0.",
-      "Players roll in fixed order and can bank after each resolved turn.",
+      "Players roll in fixed order, and banking unlocks after turn 3.",
       "A round ends when a 7 is rolled after the first three turns."
     ]
   },
@@ -23,7 +23,7 @@ export const GAME_RULE_SECTIONS: RuleSection[] = [
   {
     title: "Banking",
     points: [
-      "Any active player can bank after a resolved turn.",
+      "Any active player can bank once at least three turns are resolved.",
       "Banking adds the current communal bank to that player's score.",
       "Banked players sit out until the next round."
     ]

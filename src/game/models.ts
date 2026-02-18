@@ -22,6 +22,22 @@ export interface DiceRoll {
   isDouble: boolean;
 }
 
+export interface RollHistoryEntry {
+  playerId: string;
+  turnNumber: number;
+  dieOne: number;
+  dieTwo: number;
+  total: number;
+  isDouble: boolean;
+  isBust: boolean;
+  bankTotalAfterRoll: number;
+}
+
+export interface RoundRollHistory {
+  roundNumber: number;
+  entries: RollHistoryEntry[];
+}
+
 export interface RoundState {
   currentRound: number;
   bankTotal: number;
@@ -46,5 +62,6 @@ export interface GameState {
   settings: GameSettings;
   round: RoundState;
   turn: TurnState;
+  rollHistory: RoundRollHistory[];
   status: GameStatus;
 }

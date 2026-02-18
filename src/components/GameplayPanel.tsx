@@ -19,6 +19,7 @@ interface GameplayPanelProps {
   onManualOutcomeSelect: (outcome: ManualOutcome) => void;
   onBankPlayer: (playerId: string) => void;
   onOpenSettings: () => void;
+  onOpenRollHistory: () => void;
   isSettingsOpen: boolean;
 }
 
@@ -92,6 +93,7 @@ export default function GameplayPanel({
   onManualOutcomeSelect,
   onBankPlayer,
   onOpenSettings,
+  onOpenRollHistory,
   isSettingsOpen,
 }: GameplayPanelProps) {
   const highestScore = useMemo(
@@ -113,6 +115,7 @@ export default function GameplayPanel({
       }),
     [gameState.players],
   );
+  const pastTurnThree = gameState.round.turnCountInRound >= 3;
 
   return (
     <>
@@ -124,6 +127,13 @@ export default function GameplayPanel({
           </p>
         </div>
         <div className={styles.gameplayHeaderActions}>
+          <button
+            className={styles.button}
+            type="button"
+            onClick={onOpenRollHistory}
+          >
+            Roll History
+          </button>
           <SettingsIconButton
             isOpen={isSettingsOpen}
             onClick={onOpenSettings}
@@ -140,7 +150,7 @@ export default function GameplayPanel({
           aria-live="polite"
           data-testid="communal-bank-total"
         >
-          {gameState.round.bankTotal}
+          ${gameState.round.bankTotal}
         </output>
       </section>
 
@@ -173,11 +183,9 @@ export default function GameplayPanel({
               <button
                 key={sum}
                 type="button"
-                className={`${styles.manualDiceButton} ${selectedOutcome === sum ? styles.manualDiceButtonSelected : ""} ${gameState.round.currentRound > 3 && sum === 7 ? styles.manualDiceButtonRed : ""}`}
+                className={`${styles.manualDiceButton} ${selectedOutcome === sum ? styles.manualDiceButtonSelected : ""} ${pastTurnThree && sum === 7 ? styles.manualDiceButtonRed : ""}`}
                 onClick={() => onManualOutcomeSelect(sum)}
-                disabled={
-                  gameState.round.currentRound > 3 && (sum === 2 || sum === 12)
-                }
+                disabled={pastTurnThree && (sum === 2 || sum === 12)}
                 aria-pressed={selectedOutcome === sum}
                 aria-label={`Select sum ${sum}`}
               >
@@ -188,7 +196,7 @@ export default function GameplayPanel({
               type="button"
               className={`${styles.manualDiceButton} ${selectedOutcome === "doubles" ? styles.manualDiceButtonSelected : ""}`}
               onClick={() => onManualOutcomeSelect("doubles")}
-              disabled={gameState.round.currentRound <= 3}
+              disabled={gameState.round.turnCountInRound <= 3}
               aria-pressed={selectedOutcome === "doubles"}
               aria-label="Select doubles"
             >
@@ -260,7 +268,16 @@ export default function GameplayPanel({
                     />
                   </div>
                 </div>
-                <p className={styles.playerScore}>Score {player.score}</p>
+                <div>
+                  <p className={styles.playerScore}>${player.score}</p>
+                  {pastTurnThree &&
+                    gameState.round.bankTotal > 0 &&
+                    !player.hasBankedThisRound && (
+                      <p className={styles.playerPotentialScore}>
+                        Potential ${player.score + gameState.round.bankTotal}
+                      </p>
+                    )}
+                </div>
               </button>
             </li>
           );

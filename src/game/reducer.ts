@@ -78,6 +78,14 @@ function handleResolveRoll(
   const roll = buildDiceRoll(dieOne, dieTwo);
   const isEarlyTurn = state.round.turnCountInRound < EARLY_TURN_WINDOW;
   const outcome = resolveRollOutcome(state.round.bankTotal, roll, isEarlyTurn);
+  const nextTurnNumber = state.round.turnCountInRound + 1;
+  const nextRollHistory = appendRoundRollHistory(
+    state,
+    activePlayer.id,
+    nextTurnNumber,
+    roll,
+    outcome
+  );
 
   const rolledState: GameState = {
     ...state,
@@ -90,7 +98,8 @@ function handleResolveRoll(
       ...state.turn,
       hasRolledThisTurn: !outcome.isBust,
       lastRoll: roll
-    }
+    },
+    rollHistory: nextRollHistory
   };
 
   if (outcome.isBust) {
@@ -101,6 +110,10 @@ function handleResolveRoll(
 }
 
 function handleBankPlayer(state: GameState, playerId: string): GameState {
+  if (state.round.turnCountInRound < EARLY_TURN_WINDOW) {
+    return state;
+  }
+
   if (state.round.bankTotal < 1) {
     return state;
   }
@@ -208,6 +221,7 @@ function concludeRound(state: GameState): GameState {
       hasRolledThisTurn: false,
       lastRoll: null
     },
+    rollHistory: ensureRoundHistory(state.rollHistory, state.round.currentRound + 1),
     status: {
       screen: "gameplay",
       isGameComplete: false,
@@ -315,4 +329,54 @@ function buildDiceRoll(dieOne: number, dieTwo: number): DiceRoll {
 
 function isValidDieValue(value: number): boolean {
   return Number.isInteger(value) && value >= DIE_MIN && value <= DIE_MAX;
+}
+
+function appendRoundRollHistory(
+  state: GameState,
+  playerId: string,
+  turnNumber: number,
+  roll: DiceRoll,
+  outcome: RollOutcome
+): GameState["rollHistory"] {
+  const roundNumber = state.round.currentRound;
+  const roundHistoryIndex = state.rollHistory.findIndex(
+    (history) => history.roundNumber === roundNumber
+  );
+  const nextEntry = {
+    playerId,
+    turnNumber,
+    dieOne: roll.dieOne,
+    dieTwo: roll.dieTwo,
+    total: roll.total,
+    isDouble: roll.isDouble,
+    isBust: outcome.isBust,
+    bankTotalAfterRoll: outcome.nextBankTotal
+  };
+
+  if (roundHistoryIndex === -1) {
+    return [...state.rollHistory, { roundNumber, entries: [nextEntry] }];
+  }
+
+  return state.rollHistory.map((history, index) => {
+    if (index !== roundHistoryIndex) {
+      return history;
+    }
+
+    return {
+      ...history,
+      entries: [...history.entries, nextEntry]
+    };
+  });
+}
+
+function ensureRoundHistory(
+  rollHistory: GameState["rollHistory"],
+  roundNumber: number
+): GameState["rollHistory"] {
+  const hasRound = rollHistory.some((history) => history.roundNumber === roundNumber);
+  if (hasRound) {
+    return rollHistory;
+  }
+
+  return [...rollHistory, { roundNumber, entries: [] }];
 }

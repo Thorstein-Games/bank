@@ -13,7 +13,7 @@ import {
   writeLocalStorage
 } from "@/utils/localStorage";
 
-export const GAME_SAVE_SCHEMA_VERSION = 1;
+export const GAME_SAVE_SCHEMA_VERSION = 2;
 export const GAME_SAVE_STORAGE_KEY = buildVersionedStorageKey("saved-run");
 export const THEME_PREFERENCE_STORAGE_KEY = buildVersionedStorageKey(
   "theme-preference"
@@ -116,6 +116,7 @@ function isGameState(value: unknown): value is GameState {
     isGameSettings(value.settings) &&
     isRoundState(value.round, value.players) &&
     isTurnState(value.turn, value.players.length) &&
+    isRoundRollHistory(value.rollHistory, value.players, value.settings.roundCount) &&
     isGameStatus(value.status)
   );
 }
@@ -228,6 +229,53 @@ function isGameStatus(value: unknown): value is GameState["status"] {
   }
 
   return value.winnerIds.every((winnerId) => typeof winnerId === "string");
+}
+
+function isRoundRollHistory(
+  value: unknown,
+  players: GameState["players"],
+  roundCount: number
+): value is GameState["rollHistory"] {
+  if (!Array.isArray(value)) {
+    return false;
+  }
+
+  const playerIdSet = new Set(players.map((player) => player.id));
+  let previousRoundNumber = 0;
+
+  return value.every((roundHistory) => {
+    if (!isRecord(roundHistory)) {
+      return false;
+    }
+
+    if (
+      !isPositiveInteger(roundHistory.roundNumber) ||
+      roundHistory.roundNumber > roundCount ||
+      roundHistory.roundNumber <= previousRoundNumber ||
+      !Array.isArray(roundHistory.entries)
+    ) {
+      return false;
+    }
+
+    previousRoundNumber = roundHistory.roundNumber;
+    return roundHistory.entries.every((entry) => {
+      if (!isRecord(entry)) {
+        return false;
+      }
+
+      return (
+        typeof entry.playerId === "string" &&
+        playerIdSet.has(entry.playerId) &&
+        isPositiveInteger(entry.turnNumber) &&
+        isDieValue(entry.dieOne) &&
+        isDieValue(entry.dieTwo) &&
+        entry.total === entry.dieOne + entry.dieTwo &&
+        entry.isDouble === (entry.dieOne === entry.dieTwo) &&
+        typeof entry.isBust === "boolean" &&
+        isFiniteNumber(entry.bankTotalAfterRoll)
+      );
+    });
+  });
 }
 
 function isDiceRoll(value: unknown): value is DiceRoll {

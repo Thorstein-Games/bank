@@ -106,6 +106,12 @@ function completeAutoAdvanceDelay() {
   });
 }
 
+function playBuiltInTurn() {
+  fireEvent.click(screen.getByRole("button", { name: "Roll" }));
+  completeBuiltInRollAnimation();
+  completeAutoAdvanceDelay();
+}
+
 function bankPlayer(playerName: string) {
   fireEvent.click(
     screen.getByRole("button", { name: new RegExp(`^${playerName}\\b`) }),
@@ -159,13 +165,15 @@ describe("AppShell", () => {
     startGameWithTwoPlayers();
 
     const rollButton = screen.getByRole("button", { name: "Roll" });
-    const aliceBankButton = screen.getByRole("button", { name: /^Alice\b/ });
-    const bobBankButton = screen.getByRole("button", { name: /^Bob\b/ });
+    const getAliceBankButton = () =>
+      screen.getByRole("button", { name: /^Alice\b/ });
+    const getBobBankButton = () =>
+      screen.getByRole("button", { name: /^Bob\b/ });
     const bankTotal = screen.getByTestId("communal-bank-total");
 
     expect(rollButton).toBeEnabled();
-    expect(aliceBankButton).toBeDisabled();
-    expect(bobBankButton).toBeDisabled();
+    expect(getAliceBankButton()).toBeDisabled();
+    expect(getBobBankButton()).toBeDisabled();
     expect(bankTotal).toHaveTextContent("0");
 
     fireEvent.click(rollButton);
@@ -174,32 +182,82 @@ describe("AppShell", () => {
     expect(
       screen.getByRole("button", { name: "Rolling..." }),
     ).toBeInTheDocument();
-    expect(aliceBankButton).toBeDisabled();
+    expect(getAliceBankButton()).toBeDisabled();
     expect(bankTotal).toHaveTextContent("0");
 
     act(() => {
       jest.advanceTimersByTime(799);
     });
     expect(bankTotal).toHaveTextContent("0");
-    expect(aliceBankButton).toBeDisabled();
+    expect(getAliceBankButton()).toBeDisabled();
 
     act(() => {
       jest.advanceTimersByTime(1);
     });
 
     expect(screen.getByRole("button", { name: "Roll" })).toBeDisabled();
-    expect(aliceBankButton).toBeEnabled();
-    expect(bobBankButton).toBeEnabled();
+    expect(getAliceBankButton()).toBeDisabled();
+    expect(getBobBankButton()).toBeDisabled();
     expect(bankTotal).toHaveTextContent("70");
+    expect(within(getPlayerRow("Alice")).queryByText("Potential 70")).toBeNull();
+    expect(within(getPlayerRow("Bob")).queryByText("Potential 70")).toBeNull();
 
     completeAutoAdvanceDelay();
+    playBuiltInTurn();
+    playBuiltInTurn();
+
+    expect(getAliceBankButton()).toBeEnabled();
+    expect(getBobBankButton()).toBeEnabled();
+    expect(bankTotal).toHaveTextContent("210");
+    expect(
+      within(getPlayerRow("Alice")).queryByText("Potential 210"),
+    ).toBeNull();
     expect(screen.getByRole("button", { name: "Roll" })).toBeEnabled();
+  });
+
+  it("shows potential score starting in round three", () => {
+    const gameState = createInitialGameState({
+      playerNames: ["Alice", "Bob"],
+      roundCount: 3,
+      diceMode: "built-in",
+      theme: "system",
+    });
+    persistSnapshot({
+      schemaVersion: GAME_SAVE_SCHEMA_VERSION,
+      gameState: {
+        ...gameState,
+        players: gameState.players.map((player) => ({
+          ...player,
+          score: 140,
+        })),
+        round: {
+          ...gameState.round,
+          currentRound: 3,
+          bankTotal: 70,
+          turnCountInRound: 3,
+        },
+      },
+      pendingRoll: null,
+    });
+
+    render(<AppShell />);
+    fireEvent.click(screen.getByRole("button", { name: "Resume Game" }));
+
+    expect(screen.getByTestId("communal-bank-total")).toHaveTextContent("70");
+    expect(
+      within(getPlayerRow("Alice")).getByText("Potential $210"),
+    ).toBeInTheDocument();
+    expect(
+      within(getPlayerRow("Bob")).getByText("Potential $210"),
+    ).toBeInTheDocument();
   });
 
   it("completes a built-in full game flow with three players", () => {
     render(<AppShell />);
     startGameWithPlayers(["Alice", "Bob", "Carla"], { roundCount: 1 });
 
+    playBuiltInTurn();
+    playBuiltInTurn();
     fireEvent.click(screen.getByRole("button", { name: "Roll" }));
     completeBuiltInRollAnimation();
 
@@ -227,10 +285,16 @@ describe("AppShell", () => {
     ).toBeInTheDocument();
 
     completeBuiltInRollAnimation();
+    completeAutoAdvanceDelay();
+    fireEvent.keyDown(window, { key: "r" });
+    completeBuiltInRollAnimation();
+    completeAutoAdvanceDelay();
+    fireEvent.keyDown(window, { key: "r" });
+    completeBuiltInRollAnimation();
     fireEvent.keyDown(window, { key: "b" });
 
     expect(
-      within(getPlayerRow("Alice")).getByText("Score 70"),
+      within(getPlayerRow("Alice")).getByText("$210"),
     ).toBeInTheDocument();
   });
 
@@ -244,7 +308,7 @@ describe("AppShell", () => {
     expect(
       screen.queryByRole("button", { name: "Rolling..." }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Alice\b/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /^Alice\b/ })).toBeDisabled();
     expect(screen.getByTestId("communal-bank-total")).toHaveTextContent("70");
   });
 
@@ -292,7 +356,7 @@ describe("AppShell", () => {
     expect(screen.getByRole("img", { name: "Die one: 3" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Die two: 4" })).toBeInTheDocument();
     expect(screen.getByTestId("communal-bank-total")).toHaveTextContent("70");
-    expect(screen.getByRole("button", { name: /^Alice\b/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /^Alice\b/ })).toBeDisabled();
   });
 
   it("falls back to setup when saved schema is incompatible", () => {
@@ -409,6 +473,43 @@ describe("AppShell", () => {
     expect(screen.getByText("Round 1 of 12")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("opens roll history modal from gameplay and shows per-round stats", () => {
+    render(<AppShell />);
+    startGameWithTwoPlayers({ diceMode: "manual", roundCount: 2 });
+
+    fireEvent.click(screen.getByRole("button", { name: "Select sum 3" }));
+    fireEvent.click(screen.getByRole("button", { name: "Roll History" }));
+
+    expect(
+      screen.getByRole("heading", { name: "Roll History" }),
+    ).toBeInTheDocument();
+    const historyDialog = screen.getByRole("dialog", {
+      name: "Roll History",
+    });
+    expect(screen.getByText("Round 1")).toBeInTheDocument();
+    expect(within(historyDialog).getByText(/Rolls 1/)).toBeInTheDocument();
+    expect(
+      within(historyDialog).getByText(/Alice rolled 1 and 2/),
+    ).toBeInTheDocument();
+  });
+
+  it("shows roll history button in the end hero", () => {
+    render(<AppShell />);
+    startGameWithPlayers(["Alice", "Bob", "Carla"], {
+      diceMode: "manual",
+      roundCount: 1,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Select sum 10" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Alice\b/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Bob\b/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Carla\b/ }));
+
+    expect(
+      screen.getByRole("button", { name: "Roll History" }),
+    ).toBeInTheDocument();
   });
 
   it("expands and collapses the rules section in settings", () => {

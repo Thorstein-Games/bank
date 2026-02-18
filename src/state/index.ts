@@ -148,6 +148,12 @@ export function createInitialGameState(setupConfig: SetupConfig): GameState {
       hasRolledThisTurn: false,
       lastRoll: null
     },
+    rollHistory: [
+      {
+        roundNumber: 1,
+        entries: []
+      }
+    ],
     status: {
       screen: "gameplay",
       isGameComplete: false,

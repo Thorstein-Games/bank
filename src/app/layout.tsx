@@ -12,6 +12,25 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
+  manifest: "/favicon/site.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon/favicon.ico" },
+      { url: "/favicon/favicon.svg", type: "image/svg+xml" },
+      {
+        url: "/favicon/favicon-96x96.png",
+        sizes: "96x96",
+        type: "image/png",
+      },
+    ],
+    shortcut: [{ url: "/favicon/favicon.ico" }],
+    apple: [
+      {
+        url: "/favicon/apple-touch-icon.png",
+        sizes: "180x180",
+      },
+    ],
+  },
   alternates: {
     canonical: "/",
   },

@@ -30,6 +30,23 @@ describe("gameReducer - dice rules", () => {
       total: 8,
       isDouble: false
     });
+    expect(nextState.rollHistory).toEqual([
+      {
+        roundNumber: 1,
+        entries: [
+          {
+            playerId: initialState.players[0].id,
+            turnNumber: 1,
+            dieOne: 3,
+            dieTwo: 5,
+            total: 8,
+            isDouble: false,
+            isBust: false,
+            bankTotalAfterRoll: 8
+          }
+        ]
+      }
+    ]);
   });
 
   it("treats doubles as normal rolls during first three turns", () => {
@@ -126,6 +143,27 @@ describe("gameReducer - dice rules", () => {
     expect(nextState.players[1].hasBankedThisRound).toBe(false);
     expect(nextState.turn.activePlayerIndex).toBe(0);
     expect(nextState.turn.hasRolledThisTurn).toBe(false);
+    expect(nextState.rollHistory).toEqual([
+      {
+        roundNumber: 1,
+        entries: [
+          {
+            playerId: preparedState.players[1].id,
+            turnNumber: 4,
+            dieOne: 2,
+            dieTwo: 5,
+            total: 7,
+            isDouble: false,
+            isBust: true,
+            bankTotalAfterRoll: 18
+          }
+        ]
+      },
+      {
+        roundNumber: 2,
+        entries: []
+      }
+    ]);
   });
 });
 
@@ -136,39 +174,55 @@ describe("gameReducer - banking and turn flow", () => {
       dieOne: 3,
       dieTwo: 3
     });
+    const bankUnlockedState: GameState = {
+      ...rolledState,
+      round: {
+        ...rolledState.round,
+        turnCountInRound: 3
+      }
+    };
 
-    const nextState = gameReducer(rolledState, {
+    const nextState = gameReducer(bankUnlockedState, {
       type: "bank-player",
-      playerId: rolledState.players[1].id
+      playerId: bankUnlockedState.players[1].id
     });
 
     expect(nextState.players[1].score).toBe(6);
     expect(nextState.players[1].hasBankedThisRound).toBe(true);
-    expect(nextState.round.bankedPlayerIds).toEqual([rolledState.players[1].id]);
+    expect(nextState.round.bankedPlayerIds).toEqual([
+      bankUnlockedState.players[1].id
+    ]);
     expect(nextState.turn.hasRolledThisTurn).toBe(true);
   });
 
-  it("allows multiple players to bank after one resolved turn", () => {
+  it("allows multiple players to bank once banking is unlocked", () => {
     const rolledState = gameReducer(createGameState(["A", "B", "C"]), {
       type: "resolve-roll",
       dieOne: 2,
       dieTwo: 4
     });
+    const bankUnlockedState: GameState = {
+      ...rolledState,
+      round: {
+        ...rolledState.round,
+        turnCountInRound: 3
+      }
+    };
 
-    const afterFirstBank = gameReducer(rolledState, {
+    const afterFirstBank = gameReducer(bankUnlockedState, {
       type: "bank-player",
-      playerId: rolledState.players[0].id
+      playerId: bankUnlockedState.players[0].id
     });
     const afterSecondBank = gameReducer(afterFirstBank, {
       type: "bank-player",
-      playerId: rolledState.players[2].id
+      playerId: bankUnlockedState.players[2].id
     });
 
     expect(afterSecondBank.players[0].score).toBe(6);
     expect(afterSecondBank.players[2].score).toBe(6);
     expect(afterSecondBank.round.bankedPlayerIds).toEqual([
-      rolledState.players[0].id,
-      rolledState.players[2].id
+      bankUnlockedState.players[0].id,
+      bankUnlockedState.players[2].id
     ]);
     expect(afterSecondBank.turn.hasRolledThisTurn).toBe(false);
   });
@@ -179,9 +233,16 @@ describe("gameReducer - banking and turn flow", () => {
       dieOne: 1,
       dieTwo: 2
     });
-    const bankedState = gameReducer(rolledState, {
+    const bankUnlockedState: GameState = {
+      ...rolledState,
+      round: {
+        ...rolledState.round,
+        turnCountInRound: 3
+      }
+    };
+    const bankedState = gameReducer(bankUnlockedState, {
       type: "bank-player",
-      playerId: rolledState.players[1].id
+      playerId: bankUnlockedState.players[1].id
     });
 
     const nextState = gameReducer(bankedState, {
@@ -198,7 +259,14 @@ describe("gameReducer - banking and turn flow", () => {
       dieOne: 2,
       dieTwo: 2
     });
-    const advancedState = gameReducer(rolledState, {
+    const bankUnlockedState: GameState = {
+      ...rolledState,
+      round: {
+        ...rolledState.round,
+        turnCountInRound: 3
+      }
+    };
+    const advancedState = gameReducer(bankUnlockedState, {
       type: "advance-turn"
     });
 
@@ -213,7 +281,15 @@ describe("gameReducer - banking and turn flow", () => {
   });
 
   it("advances turn when active player banks without rolling", () => {
-    const rolledState = gameReducer(createGameState(["A", "B", "C"]), {
+    const initialState = createGameState(["A", "B", "C"]);
+    const preparedState: GameState = {
+      ...initialState,
+      round: {
+        ...initialState.round,
+        turnCountInRound: 2
+      }
+    };
+    const rolledState = gameReducer(preparedState, {
       type: "resolve-roll",
       dieOne: 2,
       dieTwo: 3
@@ -234,7 +310,15 @@ describe("gameReducer - banking and turn flow", () => {
   });
 
   it("resets round state when all players have banked", () => {
-    const rolledState = gameReducer(createGameState(["A", "B"], 2), {
+    const initialState = createGameState(["A", "B"], 2);
+    const preparedState: GameState = {
+      ...initialState,
+      round: {
+        ...initialState.round,
+        turnCountInRound: 2
+      }
+    };
+    const rolledState = gameReducer(preparedState, {
       type: "resolve-roll",
       dieOne: 3,
       dieTwo: 3
@@ -352,6 +436,21 @@ describe("gameReducer - completion and guardrails", () => {
     expect(bankBeforeRoll).toEqual(initialState);
     expect(invalidRoll).toEqual(initialState);
     expect(repeatedRoll).toEqual(firstRoll);
+  });
+
+  it("ignores banking during the first three turns", () => {
+    const rolledState = gameReducer(createGameState(), {
+      type: "resolve-roll",
+      dieOne: 1,
+      dieTwo: 2
+    });
+
+    const bankDuringEarlyTurns = gameReducer(rolledState, {
+      type: "bank-player",
+      playerId: rolledState.players[0].id
+    });
+
+    expect(bankDuringEarlyTurns).toEqual(rolledState);
   });
 });
 
