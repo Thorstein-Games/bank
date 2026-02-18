@@ -51,7 +51,9 @@ export default function AppShellRollHistoryModal({
             Roll History
           </h2>
           {!hasRollHistory && (
-            <p className={styles.sectionCopy}>No rolls have been recorded yet.</p>
+            <p className={styles.sectionCopy}>
+              No rolls have been recorded yet.
+            </p>
           )}
           <div className={styles.rollHistoryRoundList}>
             {roundHistoryStats.map((roundHistory) => (
@@ -63,26 +65,30 @@ export default function AppShellRollHistoryModal({
                   Round {roundHistory.roundNumber}
                 </h3>
                 {roundHistory.entries.length === 0 ? (
-                  <p className={styles.sectionCopy}>No turns played in this round.</p>
+                  <p className={styles.sectionCopy}>
+                    No turns played in this round.
+                  </p>
                 ) : (
                   <>
                     <p className={styles.rollHistorySummary}>
-                      Rolls {roundHistory.entries.length} | Busts {roundHistory.bustCount}
-                      {" "}| Doubles {roundHistory.doublesCount} | Sevens {" "}
-                      {roundHistory.sevenCount} | Max bank ${roundHistory.maxBankAfterRoll}
+                      Busts {roundHistory.bustCount} | Doubles{" "}
+                      {roundHistory.doublesCount} | Sevens{" "}
+                      {roundHistory.sevenCount} | Max bank $
+                      {roundHistory.maxBankAfterRoll}
                     </p>
                     <ol className={styles.rollHistoryEntryList}>
                       {roundHistory.entries.map((entry) => {
                         const playerName =
-                          playerNameById.get(entry.playerId) ?? "Unknown player";
+                          playerNameById.get(entry.playerId) ??
+                          "Unknown player";
 
                         return (
                           <li
                             key={`${roundHistory.roundNumber}-${entry.turnNumber}-${entry.playerId}`}
                           >
-                            T{entry.turnNumber}: {playerName} rolled {entry.dieOne} and{" "}
-                            {entry.dieTwo} ({entry.total}). Bank ${entry.bankTotalAfterRoll}.
-                            {entry.isBust ? " Bust." : ""}
+                            <em>{playerName}</em> rolled {entry.total}. Bank{" "}
+                            <em>${entry.bankTotalAfterRoll}</em>.
+                            <strong>{entry.isBust ? " Bust." : ""}</strong>
                           </li>
                         );
                       })}

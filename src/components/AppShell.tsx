@@ -28,6 +28,7 @@ import AppShellRollHistoryModal from "./app-shell/AppShellRollHistoryModal";
 import AppShellSettingsModal from "./app-shell/AppShellSettingsModal";
 import AppShellSetupScreen from "./app-shell/AppShellSetupScreen";
 import {
+  buildEndGameStats,
   buildFinalStandings,
   buildRoundHistoryStats,
   buildSetupStateFromCompletedGame,
@@ -208,6 +209,10 @@ export default function AppShell() {
   );
   const roundHistoryStats = useMemo(
     () => buildRoundHistoryStats(rollHistoryRounds),
+    [rollHistoryRounds],
+  );
+  const endGameStats = useMemo(
+    () => buildEndGameStats(rollHistoryRounds),
     [rollHistoryRounds],
   );
 
@@ -467,6 +472,7 @@ export default function AppShell() {
             finalStandings={finalStandings}
             winnerIdSet={winnerIdSet}
             winnerSummary={winnerSummary}
+            endGameStats={endGameStats}
             onOpenRollHistory={openRollHistory}
             onPlayAgain={handlePlayAgain}
             onEditNextGameSettings={handleEditNextGameSettings}

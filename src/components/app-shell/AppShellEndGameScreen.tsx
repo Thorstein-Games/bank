@@ -1,12 +1,13 @@
 import type { GameScreen, Player } from "@/game/models";
 import styles from "../AppShell.module.css";
-import { buildClassNames } from "./appShellUtils";
+import { buildClassNames, type EndGameStats } from "./appShellUtils";
 
 interface AppShellEndGameScreenProps {
   activeScreen: GameScreen;
   finalStandings: Player[];
   winnerIdSet: Set<string>;
   winnerSummary: string;
+  endGameStats: EndGameStats;
   onOpenRollHistory: () => void;
   onPlayAgain: () => void;
   onEditNextGameSettings: () => void;
@@ -17,6 +18,7 @@ export default function AppShellEndGameScreen({
   finalStandings,
   winnerIdSet,
   winnerSummary,
+  endGameStats,
   onOpenRollHistory,
   onPlayAgain,
   onEditNextGameSettings,
@@ -72,6 +74,78 @@ export default function AppShellEndGameScreen({
             );
           })}
         </ol>
+        <section
+          className={styles.endStatsSection}
+          aria-labelledby="end-stats-heading"
+        >
+          <h3 id="end-stats-heading" className={styles.endStatsHeading}>
+            Match Stats
+          </h3>
+          <dl className={styles.endStatsGrid} aria-label="End game stats">
+            <div className={styles.endStatCard}>
+              <dt className={styles.endStatLabel}>Max bank potential</dt>
+              <dd className={styles.endStatValue}>
+                ${endGameStats.maxBankPotential}
+              </dd>
+            </div>
+            <div className={styles.endStatCard}>
+              <dt className={styles.endStatLabel}>Longest round</dt>
+              <dd className={styles.endStatValue}>
+                {endGameStats.longestRoundTurns} turns
+              </dd>
+            </div>
+            <div className={styles.endStatCard}>
+              <dt className={styles.endStatLabel}>Avg doubles / round</dt>
+              <dd className={styles.endStatValue}>
+                {endGameStats.averageDoublesPerRound.toFixed(1)}
+              </dd>
+            </div>
+            <div className={styles.endStatCard}>
+              <dt className={styles.endStatLabel}>Avg turns / round</dt>
+              <dd className={styles.endStatValue}>
+                {endGameStats.averageTurnsPerRound.toFixed(1)}
+              </dd>
+            </div>
+            <div className={styles.endStatCard}>
+              <dt className={styles.endStatLabel}>Bust rate</dt>
+              <dd className={styles.endStatValue}>
+                {endGameStats.bustRatePercent.toFixed(1)}%
+              </dd>
+            </div>
+            <div className={styles.endStatCard}>
+              <dt className={styles.endStatLabel}>Hot roll</dt>
+              <dd className={styles.endStatValue}>
+                {endGameStats.hottestNumber === null
+                  ? "N/A"
+                  : `${endGameStats.hottestNumber}`}
+              </dd>
+            </div>
+          </dl>
+          <div className={styles.endProbabilityBlock}>
+            <p className={styles.endProbabilityHeading}>
+              Roll probability (this game, totals 2-12)
+            </p>
+            <div className={styles.endProbabilityGrid}>
+              {endGameStats.numberProbabilities.map((item) => (
+                <div
+                  key={item.total}
+                  className={styles.endProbabilityItem}
+                  data-testid={`end-roll-prob-${item.total}`}
+                >
+                  <span className={styles.endProbabilityTotal}>
+                    {item.total}
+                  </span>
+                  <span className={styles.endProbabilityPercent}>
+                    {item.probabilityPercent.toFixed(1)}%
+                  </span>
+                  <span className={styles.endProbabilityCount}>
+                    {item.count}/{endGameStats.totalRolls}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       </div>
       <div className={buildClassNames(styles.actionRow, styles.endActionRow)}>
         <button

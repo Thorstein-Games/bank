@@ -112,6 +112,10 @@ function playBuiltInTurn() {
   completeAutoAdvanceDelay();
 }
 
+function playManualTurn(total: number) {
+  fireEvent.click(screen.getByRole("button", { name: `Select sum ${total}` }));
+}
+
 function bankPlayer(playerName: string) {
   fireEvent.click(
     screen.getByRole("button", { name: new RegExp(`^${playerName}\\b`) }),
@@ -489,10 +493,8 @@ describe("AppShell", () => {
       name: "Roll History",
     });
     expect(screen.getByText("Round 1")).toBeInTheDocument();
-    expect(within(historyDialog).getByText(/Rolls 1/)).toBeInTheDocument();
-    expect(
-      within(historyDialog).getByText(/Alice rolled 1 and 2/),
-    ).toBeInTheDocument();
+    expect(within(historyDialog).getByText(/Busts 0/)).toBeInTheDocument();
+    expect(within(historyDialog).getByText(/Alice/)).toBeInTheDocument();
   });
 
   it("shows roll history button in the end hero", () => {
@@ -510,6 +512,48 @@ describe("AppShell", () => {
     expect(
       screen.getByRole("button", { name: "Roll History" }),
     ).toBeInTheDocument();
+  });
+
+  it("renders end-game hero stats including roll probabilities", () => {
+    render(<AppShell />);
+    startGameWithTwoPlayers({ diceMode: "manual", roundCount: 1 });
+
+    playManualTurn(3);
+    completeAutoAdvanceDelay();
+    playManualTurn(4);
+    completeAutoAdvanceDelay();
+    playManualTurn(5);
+    completeAutoAdvanceDelay();
+    playManualTurn(7);
+
+    expect(screen.getByRole("heading", { name: "End of Game" })).toBeInTheDocument();
+    const maxBankCard = screen.getByText("Max bank potential").closest("div");
+    const avgTurnsCard = screen.getByText("Avg turns / round").closest("div");
+    const avgDoublesCard = screen.getByText("Avg doubles / round").closest("div");
+    const bustRateCard = screen.getByText("Bust rate").closest("div");
+    const hotRollCard = screen.getByText("Hot roll").closest("div");
+    const longestRoundCard = screen.getByText("Longest round").closest("div");
+
+    expect(maxBankCard).not.toBeNull();
+    expect(avgTurnsCard).not.toBeNull();
+    expect(avgDoublesCard).not.toBeNull();
+    expect(bustRateCard).not.toBeNull();
+    expect(hotRollCard).not.toBeNull();
+    expect(longestRoundCard).not.toBeNull();
+    expect(within(maxBankCard as HTMLElement).getByText("$12")).toBeInTheDocument();
+    expect(within(avgTurnsCard as HTMLElement).getByText("4.0")).toBeInTheDocument();
+    expect(within(avgDoublesCard as HTMLElement).getByText("0.0")).toBeInTheDocument();
+    expect(
+      within(bustRateCard as HTMLElement).getByText("25.0%"),
+    ).toBeInTheDocument();
+    expect(within(hotRollCard as HTMLElement).getByText("3")).toBeInTheDocument();
+    expect(
+      within(longestRoundCard as HTMLElement).getByText("4 turns"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Roll probability (this game, totals 2-12)"),
+    ).toBeInTheDocument();
+    expect(within(screen.getByTestId("end-roll-prob-3")).getByText("1/4")).toBeInTheDocument();
   });
 
   it("expands and collapses the rules section in settings", () => {

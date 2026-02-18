@@ -23,6 +23,9 @@ Live URL:
 - Every roll is persisted into per-round history in game state and save snapshots;
   a `Roll History` button opens a modal in gameplay and end-of-game hero
   with round-by-round roll stats.
+- The end-of-game hero now includes advanced match analytics: max communal-bank
+  potential, average turns/doubles per round, bust rate, hottest roll total,
+  longest round, and observed probability distribution for totals 2 through 12.
 - `AppShell` is split into focused modules under `src/components/app-shell/`
   (setup screen, end-game screen, modals, announcements, and app-shell hooks)
   so orchestration logic stays under 500 LOC.

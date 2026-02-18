@@ -1,6 +1,6 @@
 .page {
   width: 100%;
-  max-width: 1060px;
+  max-width: 1115px;
   min-height: 100dvh;
   margin: 0 auto;
   padding: 18px 12px 32px;
@@ -553,13 +553,119 @@
   color: color-mix(in srgb, var(--color-text) 88%, var(--color-muted));
 }
 
+.endStatsGrid {
+  margin: 12px 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.endStatCard {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: color-mix(
+    in srgb,
+    var(--color-surface-elevated) 90%,
+    var(--color-mix-ref) 10%
+  );
+  display: grid;
+  gap: 3px;
+}
+
+.endStatLabel {
+  margin: 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.endStatValue {
+  margin: 0;
+  font-size: 1.06rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.endProbabilityBlock {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.endProbabilityHeading {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.endProbabilityGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 7px;
+}
+
+.endProbabilityItem {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 6px 8px;
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  background: color-mix(
+    in srgb,
+    var(--color-surface) 90%,
+    var(--color-mix-ref) 10%
+  );
+}
+
+.endProbabilityTotal {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.endProbabilityPercent {
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.endProbabilityCount {
+  font-size: 0.74rem;
+  color: var(--color-muted);
+}
+
 .endScoreboard {
   margin: 0;
   padding: 0;
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
+}
+
+.endStatsSection {
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 12px;
+  background: color-mix(
+    in srgb,
+    var(--color-surface-elevated) 88%,
+    var(--color-mix-ref) 12%
+  );
+  display: grid;
+  gap: 10px;
+}
+
+.endStatsHeading {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
 }
 
 .endPlayerCard {

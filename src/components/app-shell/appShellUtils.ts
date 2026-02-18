@@ -1,5 +1,9 @@
 import { ROUND_COUNT_PRESETS } from "@/game/constants";
-import type { GameState, RoundRollHistory, ThemePreference } from "@/game/models";
+import type {
+  GameState,
+  RoundRollHistory,
+  ThemePreference,
+} from "@/game/models";
 import {
   CUSTOM_ROUND_COUNT,
   createDefaultSetupState,
@@ -16,6 +20,23 @@ export interface RoundHistoryStats extends RoundRollHistory {
   doublesCount: number;
   sevenCount: number;
   maxBankAfterRoll: number;
+}
+
+export interface EndGameNumberProbability {
+  total: number;
+  count: number;
+  probabilityPercent: number;
+}
+
+export interface EndGameStats {
+  maxBankPotential: number;
+  averageTurnsPerRound: number;
+  averageDoublesPerRound: number;
+  bustRatePercent: number;
+  hottestNumber: number | null;
+  longestRoundTurns: number;
+  totalRolls: number;
+  numberProbabilities: EndGameNumberProbability[];
 }
 
 export function createSetupStateWithTheme(theme: ThemePreference): SetupState {
@@ -64,7 +85,9 @@ export function buildClassNames(...classNames: string[]): string {
   return classNames.filter(Boolean).join(" ");
 }
 
-export function buildSetupStateFromCompletedGame(gameState: GameState): SetupState {
+export function buildSetupStateFromCompletedGame(
+  gameState: GameState,
+): SetupState {
   const presetRoundCount = ROUND_COUNT_PRESETS.find(
     (preset) => preset === gameState.settings.roundCount,
   );
@@ -88,7 +111,9 @@ export function buildRoundHistoryStats(
   return roundHistory.map((round) => {
     const bustCount = round.entries.filter((entry) => entry.isBust).length;
     const doublesCount = round.entries.filter((entry) => entry.isDouble).length;
-    const sevenCount = round.entries.filter((entry) => entry.total === 7).length;
+    const sevenCount = round.entries.filter(
+      (entry) => entry.total === 7,
+    ).length;
     const maxBankAfterRoll = round.entries.reduce(
       (maxBank, entry) => Math.max(maxBank, entry.bankTotalAfterRoll),
       0,
@@ -102,6 +127,68 @@ export function buildRoundHistoryStats(
       maxBankAfterRoll,
     };
   });
+}
+
+export function buildEndGameStats(
+  roundHistory: RoundRollHistory[],
+): EndGameStats {
+  console.log("roundHistory", roundHistory);
+  const playedRounds = roundHistory.filter((round) => round.entries.length > 0);
+  const roundHistoryStats = buildRoundHistoryStats(playedRounds);
+  const allEntries = roundHistoryStats.flatMap((round) => round.entries);
+  const totalRolls = allEntries.length;
+  const totalRounds = roundHistoryStats.length;
+  const totalDoubles = allEntries.filter((entry) => entry.isDouble).length;
+  const totalBusts = allEntries.filter((entry) => entry.isBust).length;
+  const longestRoundTurns = roundHistoryStats.reduce(
+    (maxTurns, round) => Math.max(maxTurns, round.entries.length),
+    0,
+  );
+  const maxBankPotential = roundHistoryStats.reduce(
+    (maxBank, entry) => maxBank + entry.maxBankAfterRoll,
+    0,
+  );
+
+  const numberCounts = new Map<number, number>();
+  for (let total = 2; total <= 12; total += 1) {
+    numberCounts.set(total, 0);
+  }
+  for (const entry of allEntries) {
+    numberCounts.set(entry.total, (numberCounts.get(entry.total) ?? 0) + 1);
+  }
+
+  const numberProbabilities: EndGameNumberProbability[] = [];
+  for (let total = 2; total <= 12; total += 1) {
+    const count = numberCounts.get(total) ?? 0;
+    const probabilityPercent = totalRolls > 0 ? (count / totalRolls) * 100 : 0;
+    numberProbabilities.push({
+      total,
+      count,
+      probabilityPercent,
+    });
+  }
+
+  const hottestProbability = numberProbabilities.reduce(
+    (currentMax, item) => Math.max(currentMax, item.probabilityPercent),
+    0,
+  );
+  const hottestNumber =
+    hottestProbability > 0
+      ? (numberProbabilities.find(
+          (item) => item.probabilityPercent === hottestProbability,
+        )?.total ?? null)
+      : null;
+
+  return {
+    maxBankPotential,
+    averageTurnsPerRound: totalRounds > 0 ? totalRolls / totalRounds : 0,
+    averageDoublesPerRound: totalRounds > 0 ? totalDoubles / totalRounds : 0,
+    bustRatePercent: totalRolls > 0 ? (totalBusts / totalRolls) * 100 : 0,
+    hottestNumber,
+    longestRoundTurns,
+    totalRolls,
+    numberProbabilities,
+  };
 }
 
 export function buildFinalStandings(gameState: GameState) {
