@@ -1,19 +1,30 @@
 "use client";
 
-import { MAX_PLAYERS, MIN_PLAYERS } from "@/game/constants";
-import type { GameScreen, GameState, ThemePreference } from "@/game/models";
+import {
+  MAX_PLAYERS,
+  MIN_PLAYERS,
+  ROUND_COUNT_PRESETS,
+} from "@/game/constants";
+import type {
+  DiceMode,
+  GameScreen,
+  GameState,
+  ThemePreference,
+} from "@/game/models";
 import { type GameAction, gameReducer } from "@/game/reducer";
 import useDiceRollController, {
-  type RollResolutionFeedback
+  type RollResolutionFeedback,
 } from "@/hooks/useDiceRollController";
 import useGameAudio from "@/hooks/useGameAudio";
 import {
+  CUSTOM_ROUND_COUNT,
   buildSetupConfig,
   createDefaultSetupState,
   createInitialGameState,
   resizePlayerNames,
-  resolveRoundCount,
-  validateSetup
+  type RoundCountOption,
+  type SetupState,
+  validateSetup,
 } from "@/state";
 import {
   clearPersistedGameSnapshot,
@@ -24,7 +35,7 @@ import {
   readPersistedThemePreference,
   writePersistedAudioMuted,
   writePersistedGameSnapshot,
-  writePersistedThemePreference
+  writePersistedThemePreference,
 } from "@/state/persistence";
 import type { ChangeEvent, FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -32,11 +43,13 @@ import styles from "./AppShell.module.css";
 import ConfettiBurst from "./ConfettiBurst";
 import GameplayPanel from "./GameplayPanel";
 import SettingsPanel from "./SettingsPanel";
+import SettingsIconButton from "./SettingsIconButton";
 
 const PLAYER_COUNT_OPTIONS = Array.from(
   { length: MAX_PLAYERS - MIN_PLAYERS + 1 },
-  (_, index) => MIN_PLAYERS + index
+  (_, index) => MIN_PLAYERS + index,
 );
+const AUTO_ADVANCE_DELAY_MS = 300;
 
 interface LiveAnnouncement {
   id: number;
@@ -46,13 +59,16 @@ interface LiveAnnouncement {
 function createSetupStateWithTheme(theme: ThemePreference) {
   return {
     ...createDefaultSetupState(),
-    theme
+    theme,
   };
 }
 
 function getWinnerNames(gameState: GameState): string[] {
   return gameState.status.winnerIds
-    .map((winnerId) => gameState.players.find((player) => player.id === winnerId)?.name)
+    .map(
+      (winnerId) =>
+        gameState.players.find((player) => player.id === winnerId)?.name,
+    )
     .filter((winnerName): winnerName is string => Boolean(winnerName));
 }
 
@@ -86,24 +102,42 @@ function buildButtonClassNames(...classNames: string[]): string {
   return classNames.filter(Boolean).join(" ");
 }
 
+function buildSetupStateFromCompletedGame(gameState: GameState): SetupState {
+  const presetRoundCount = ROUND_COUNT_PRESETS.find(
+    (preset) => preset === gameState.settings.roundCount,
+  );
+  const roundCountOption: SetupState["roundCountOption"] =
+    presetRoundCount ?? CUSTOM_ROUND_COUNT;
+
+  return {
+    playerNames: gameState.players.map((player) => player.name),
+    roundCountOption,
+    customRoundCount: presetRoundCount
+      ? ""
+      : String(gameState.settings.roundCount),
+    diceMode: gameState.settings.diceMode,
+    theme: gameState.settings.theme,
+  };
+}
+
 export default function AppShell() {
   const [setupState, setSetupState] = useState(createDefaultSetupState);
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [resumeSnapshot, setResumeSnapshot] = useState<PersistedGameSnapshot | null>(
-    null
-  );
+  const [resumeSnapshot, setResumeSnapshot] =
+    useState<PersistedGameSnapshot | null>(null);
   const [hasLoadedSavedGame, setHasLoadedSavedGame] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
-  const [politeAnnouncement, setPoliteAnnouncement] = useState<LiveAnnouncement>({
-    id: 0,
-    text: ""
-  });
+  const [politeAnnouncement, setPoliteAnnouncement] =
+    useState<LiveAnnouncement>({
+      id: 0,
+      text: "",
+    });
   const [assertiveAnnouncement, setAssertiveAnnouncement] =
     useState<LiveAnnouncement>({
       id: 0,
-      text: ""
+      text: "",
     });
   const [isConfettiActive, setIsConfettiActive] = useState(false);
   const previousScreenRef = useRef<GameScreen>("setup");
@@ -111,20 +145,20 @@ export default function AppShell() {
   const announcePolite = useCallback((text: string) => {
     setPoliteAnnouncement((currentAnnouncement) => ({
       id: currentAnnouncement.id + 1,
-      text
+      text,
     }));
   }, []);
 
   const announceAssertive = useCallback((text: string) => {
     setAssertiveAnnouncement((currentAnnouncement) => ({
       id: currentAnnouncement.id + 1,
-      text
+      text,
     }));
   }, []);
 
   const setupValidation = useMemo(
     () => validateSetup(setupState),
-    [setupState]
+    [setupState],
   );
   const activeTheme = gameState?.settings.theme ?? setupState.theme;
   const hasSavedGame = Boolean(gameState || resumeSnapshot);
@@ -141,7 +175,7 @@ export default function AppShell() {
 
   const { playRollSound, playBankSound } = useGameAudio({
     isMuted: isAudioMuted,
-    hasUserInteracted
+    hasUserInteracted,
   });
 
   const handleRollResolved = useCallback(
@@ -151,22 +185,22 @@ export default function AppShell() {
       }
 
       const activePlayerName =
-        gameState.players[gameState.turn.activePlayerIndex]?.name ?? "Active player";
+        gameState.players[gameState.turn.activePlayerIndex]?.name ??
+        "Active player";
 
       if (rollResult.isBust) {
         announceAssertive(
-          `Bust. ${activePlayerName} rolled ${rollResult.dieOne} and ${rollResult.dieTwo}. The round ended immediately.`
+          `Bust. ${activePlayerName} rolled ${rollResult.dieOne} and ${rollResult.dieTwo}. The round ended immediately.`,
         );
         return;
       }
 
-      const bonusText =
-        rollResult.total === 7 ? " Early 7 bonus applied." : "";
+      const bonusText = rollResult.total === 7 ? " Early 7 bonus applied." : "";
       announcePolite(
-        `${activePlayerName} rolled ${rollResult.dieOne} and ${rollResult.dieTwo} for ${rollResult.total}. Communal bank is ${rollResult.nextBankTotal}.${bonusText}`
+        `${activePlayerName} rolled ${rollResult.dieOne} and ${rollResult.dieTwo} for ${rollResult.total}. Communal bank is ${rollResult.nextBankTotal}.${bonusText}`,
       );
     },
-    [announceAssertive, announcePolite, gameState]
+    [announceAssertive, announcePolite, gameState],
   );
 
   const {
@@ -182,12 +216,12 @@ export default function AppShell() {
     resetDiceState,
     setStableDiceDisplay,
     handleRoll,
-    handleManualDieInputChange
+    handleManualDieInputChange,
   } = useDiceRollController({
     gameState,
     dispatchGameAction,
     onBuiltInRollStart: playRollSound,
-    onRollResolved: handleRollResolved
+    onRollResolved: handleRollResolved,
   });
 
   useEffect(() => {
@@ -210,7 +244,7 @@ export default function AppShell() {
     if (persistedThemePreference) {
       setSetupState((currentState) => ({
         ...currentState,
-        theme: persistedThemePreference
+        theme: persistedThemePreference,
       }));
     }
 
@@ -229,32 +263,42 @@ export default function AppShell() {
     rootElement.setAttribute("data-theme", activeTheme);
   }, [activeTheme]);
 
-  const activeScreen: GameScreen = gameState ? gameState.status.screen : "setup";
+  const activeScreen: GameScreen = gameState
+    ? gameState.status.screen
+    : "setup";
   const showResumePrompt =
     hasLoadedSavedGame && gameState === null && resumeSnapshot !== null;
   const activePlayer = gameState
-    ? gameState.players[gameState.turn.activePlayerIndex] ?? null
+    ? (gameState.players[gameState.turn.activePlayerIndex] ?? null)
     : null;
   const canRoll = Boolean(
     gameState &&
-      activePlayer &&
-      !gameState.turn.hasRolledThisTurn &&
-      !activePlayer.hasBankedThisRound &&
-      !isDiceAnimating &&
-      (!isManualMode || isManualInputValid)
+    activePlayer &&
+    !gameState.turn.hasRolledThisTurn &&
+    !activePlayer.hasBankedThisRound &&
+    !isDiceAnimating &&
+    (!isManualMode || isManualInputValid),
   );
-  const canBank = Boolean(gameState && gameState.turn.hasRolledThisTurn);
-  const winnerNames = gameState ? getWinnerNames(gameState) : [];
-  const setupRoundCount =
-    resolveRoundCount(setupState.roundCountOption, setupState.customRoundCount) ?? 0;
+  const canBank = Boolean(
+    gameState && gameState.round.bankTotal > 0 && !isDiceAnimating,
+  );
+  const shouldAutoAdvanceTurn = Boolean(
+    activeScreen === "gameplay" &&
+    gameState?.turn.hasRolledThisTurn &&
+    !isDiceAnimating,
+  );
+  const winnerIdSet = useMemo(
+    () => new Set(gameState?.status.winnerIds ?? []),
+    [gameState],
+  );
   const handleBankPlayer = useCallback(
     (playerId: string) => {
-      if (!gameState || !gameState.turn.hasRolledThisTurn) {
+      if (!gameState || gameState.round.bankTotal < 1 || isDiceAnimating) {
         return;
       }
 
       const player = gameState.players.find(
-        (candidatePlayer) => candidatePlayer.id === playerId
+        (candidatePlayer) => candidatePlayer.id === playerId,
       );
       if (!player || player.hasBankedThisRound) {
         return;
@@ -265,12 +309,20 @@ export default function AppShell() {
 
       dispatchGameAction({
         type: "bank-player",
-        playerId
+        playerId,
       });
       playBankSound();
-      announcePolite(`${player.name} banked ${bankedAmount}. New score: ${nextScore}.`);
+      announcePolite(
+        `${player.name} banked ${bankedAmount}. New score: ${nextScore}.`,
+      );
     },
-    [announcePolite, dispatchGameAction, gameState, playBankSound]
+    [
+      announcePolite,
+      dispatchGameAction,
+      gameState,
+      isDiceAnimating,
+      playBankSound,
+    ],
   );
   const handleBankActivePlayer = useCallback(() => {
     if (!activePlayer) {
@@ -293,7 +345,7 @@ export default function AppShell() {
     writePersistedGameSnapshot({
       schemaVersion: GAME_SAVE_SCHEMA_VERSION,
       gameState,
-      pendingRoll
+      pendingRoll,
     });
   }, [gameState, pendingRoll, hasLoadedSavedGame, showResumePrompt]);
 
@@ -328,6 +380,20 @@ export default function AppShell() {
 
     return () => clearTimeout(confettiTimeout);
   }, [isConfettiActive]);
+
+  useEffect(() => {
+    if (!shouldAutoAdvanceTurn) {
+      return;
+    }
+
+    const autoAdvanceTimeout = setTimeout(() => {
+      dispatchGameAction({
+        type: "advance-turn",
+      });
+    }, AUTO_ADVANCE_DELAY_MS);
+
+    return () => clearTimeout(autoAdvanceTimeout);
+  }, [dispatchGameAction, shouldAutoAdvanceTurn]);
 
   useEffect(() => {
     if (activeScreen !== "gameplay") {
@@ -365,7 +431,29 @@ export default function AppShell() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activePlayer, activeScreen, canBank, canRoll, handleRoll, handleBankActivePlayer]);
+  }, [
+    activePlayer,
+    activeScreen,
+    canBank,
+    canRoll,
+    handleRoll,
+    handleBankActivePlayer,
+  ]);
+
+  useEffect(() => {
+    if (!isSettingsOpen) {
+      return;
+    }
+
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsSettingsOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleEscapeKey);
+    return () => window.removeEventListener("keydown", handleEscapeKey);
+  }, [isSettingsOpen]);
 
   function handlePlayerCountChange(event: ChangeEvent<HTMLSelectElement>) {
     const nextCount = Number.parseInt(event.target.value, 10);
@@ -375,7 +463,7 @@ export default function AppShell() {
 
     setSetupState((currentState) => ({
       ...currentState,
-      playerNames: resizePlayerNames(currentState.playerNames, nextCount)
+      playerNames: resizePlayerNames(currentState.playerNames, nextCount),
     }));
   }
 
@@ -385,15 +473,36 @@ export default function AppShell() {
       nextPlayerNames[index] = nextValue;
       return {
         ...currentState,
-        playerNames: nextPlayerNames
+        playerNames: nextPlayerNames,
       };
     });
+  }
+
+  function handleDiceModeChange(nextMode: DiceMode) {
+    setSetupState((currentState) => ({
+      ...currentState,
+      diceMode: nextMode,
+    }));
+  }
+
+  function handleRoundCountOptionChange(nextOption: RoundCountOption) {
+    setSetupState((currentState) => ({
+      ...currentState,
+      roundCountOption: nextOption,
+    }));
+  }
+
+  function handleCustomRoundCountChange(nextValue: string) {
+    setSetupState((currentState) => ({
+      ...currentState,
+      customRoundCount: nextValue,
+    }));
   }
 
   function handleThemeChange(nextTheme: ThemePreference) {
     setSetupState((currentState) => ({
       ...currentState,
-      theme: nextTheme
+      theme: nextTheme,
     }));
     setGameState((currentState) => {
       if (!currentState) {
@@ -404,8 +513,8 @@ export default function AppShell() {
         ...currentState,
         settings: {
           ...currentState.settings,
-          theme: nextTheme
-        }
+          theme: nextTheme,
+        },
       };
     });
 
@@ -448,7 +557,7 @@ export default function AppShell() {
       hydratedGameState = gameReducer(hydratedGameState, {
         type: "resolve-roll",
         dieOne: resumeSnapshot.pendingRoll.dieOne,
-        dieTwo: resumeSnapshot.pendingRoll.dieTwo
+        dieTwo: resumeSnapshot.pendingRoll.dieTwo,
       });
       setStableDiceDisplay(resumeSnapshot.pendingRoll);
     } else if (resumeSnapshot.gameState.turn.lastRoll) {
@@ -463,7 +572,9 @@ export default function AppShell() {
 
   function handleStartNewGame() {
     resetDiceState();
-    setSetupState((currentState) => createSetupStateWithTheme(currentState.theme));
+    setSetupState((currentState) =>
+      createSetupStateWithTheme(currentState.theme),
+    );
     setGameState(null);
     setResumeSnapshot(null);
     setIsSettingsOpen(false);
@@ -484,12 +595,6 @@ export default function AppShell() {
     clearPersistedGameSnapshot();
   }
 
-  function handleAdvanceTurn() {
-    dispatchGameAction({
-      type: "advance-turn"
-    });
-  }
-
   function handlePlayAgain() {
     if (!gameState) {
       return;
@@ -504,42 +609,59 @@ export default function AppShell() {
         playerNames: gameState.players.map((player) => player.name),
         roundCount: gameState.settings.roundCount,
         diceMode: gameState.settings.diceMode,
-        theme: gameState.settings.theme
-      })
+        theme: gameState.settings.theme,
+      }),
     );
+  }
+
+  function handleEditNextGameSettings() {
+    if (!gameState) {
+      return;
+    }
+
+    resetDiceState();
+    setSetupState(buildSetupStateFromCompletedGame(gameState));
+    setGameState(null);
+    setResumeSnapshot(null);
+    setIsSettingsOpen(false);
+    setIsConfettiActive(false);
+    clearPersistedGameSnapshot();
   }
 
   return (
     <main className={styles.page}>
       <ConfettiBurst isActive={isConfettiActive} />
-      <div className={styles.visuallyHidden} aria-live="polite" aria-atomic="true">
+      <div
+        className={styles.visuallyHidden}
+        aria-live="polite"
+        aria-atomic="true"
+      >
         <span key={politeAnnouncement.id}>{politeAnnouncement.text}</span>
       </div>
-      <div className={styles.visuallyHidden} aria-live="assertive" aria-atomic="true">
+      <div
+        className={styles.visuallyHidden}
+        aria-live="assertive"
+        aria-atomic="true"
+      >
         <span key={assertiveAnnouncement.id}>{assertiveAnnouncement.text}</span>
       </div>
-
-      <header className={styles.header}>
-        <div className={styles.headerRow}>
-          <h1 className={styles.title}>Play bank game online with Bank Dice Game</h1>
-          <button
-            className={buildButtonClassNames(styles.button, styles.subtleButton)}
-            type="button"
-            onClick={handleToggleAudioMuted}
-            aria-pressed={isAudioMuted}
-          >
-            {isAudioMuted ? "Unmute Audio" : "Mute Audio"}
-          </button>
-        </div>
-        <p className={styles.subtitle}>
-          Play bank game online in a fast multiplayer format: roll dice, grow the
-          communal bank, and choose when to secure points before busts end a round.
-        </p>
-      </header>
+      {activeScreen === "setup" && (
+        <header className={styles.header}>
+          <>
+            <div className={styles.headerRow}>
+              <h1 className={styles.title}>Play Bank Dice Game Online</h1>
+            </div>
+            <p className={styles.subtitle}>
+              Play Bank Dice Game Online in a fast multiplayer format: roll
+              dice, grow the communal bank, and choose when to secure points
+              before busts end a round.
+            </p>
+          </>
+        </header>
+      )}
 
       <div className={styles.stage}>
         <section
-          className={styles.section}
           aria-labelledby="setup-heading"
           hidden={activeScreen !== "setup"}
         >
@@ -547,64 +669,44 @@ export default function AppShell() {
             <h2 id="setup-heading" className={styles.sectionHeading}>
               Setup
             </h2>
-            <button
-              className={buildButtonClassNames(styles.button, styles.subtleButton)}
-              type="button"
-              onClick={() => setIsSettingsOpen((currentValue) => !currentValue)}
-              aria-expanded={isSettingsOpen}
-              aria-controls="setup-settings-panel"
-            >
-              Settings
-            </button>
+            <SettingsIconButton
+              isOpen={isSettingsOpen}
+              onClick={() => setIsSettingsOpen(true)}
+            />
           </div>
 
-          <SettingsPanel
-            context="setup"
-            isOpen={isSettingsOpen}
-            theme={setupState.theme}
-            diceMode={setupState.diceMode}
-            roundCountOption={setupState.roundCountOption}
-            customRoundCount={setupState.customRoundCount}
-            roundCountError={setupValidation.roundCountError}
-            configuredRoundCount={setupRoundCount}
-            onThemeChange={handleThemeChange}
-            onDiceModeChange={(nextMode) =>
-              setSetupState((currentState) => ({
-                ...currentState,
-                diceMode: nextMode
-              }))
-            }
-            onRoundCountOptionChange={(nextOption) =>
-              setSetupState((currentState) => ({
-                ...currentState,
-                roundCountOption: nextOption
-              }))
-            }
-            onCustomRoundCountChange={(nextValue) =>
-              setSetupState((currentState) => ({
-                ...currentState,
-                customRoundCount: nextValue
-              }))
-            }
-            onResetSavedGame={hasSavedGame ? handleResetSavedGame : undefined}
-          />
-
           {showResumePrompt ? (
-            <div className={styles.resumePrompt} role="dialog" aria-modal="false">
+            <div
+              className={styles.resumePrompt}
+              role="dialog"
+              aria-modal="false"
+            >
               <p className={styles.sectionCopy}>
                 Saved game found. Resume where you left off or start a new game.
               </p>
               <div className={styles.actionRow}>
-                <button className={styles.button} type="button" onClick={handleResumeGame}>
+                <button
+                  className={styles.button}
+                  type="button"
+                  onClick={handleResumeGame}
+                >
                   Resume Game
                 </button>
-                <button className={styles.button} type="button" onClick={handleStartNewGame}>
+                <button
+                  className={styles.button}
+                  type="button"
+                  onClick={handleStartNewGame}
+                >
                   New Game
                 </button>
               </div>
             </div>
           ) : (
-            <form className={styles.setupForm} onSubmit={handleStartGame} noValidate>
+            <form
+              className={styles.setupForm}
+              onSubmit={handleStartGame}
+              noValidate
+            >
               <fieldset className={styles.fieldset}>
                 <legend className={styles.legend}>Players</legend>
                 <label className={styles.label} htmlFor="player-count">
@@ -634,7 +736,11 @@ export default function AppShell() {
                     const errorId = `${fieldId}-error`;
 
                     return (
-                      <label key={fieldId} className={styles.playerField} htmlFor={fieldId}>
+                      <label
+                        key={fieldId}
+                        className={styles.playerField}
+                        htmlFor={fieldId}
+                      >
                         <span className={styles.label}>Player {index + 1}</span>
                         <input
                           id={fieldId}
@@ -649,7 +755,11 @@ export default function AppShell() {
                           autoComplete="off"
                         />
                         {playerError && (
-                          <span id={errorId} className={styles.errorText} role="alert">
+                          <span
+                            id={errorId}
+                            className={styles.errorText}
+                            role="alert"
+                          >
                             {playerError}
                           </span>
                         )}
@@ -659,9 +769,103 @@ export default function AppShell() {
                 </div>
               </fieldset>
 
+              <fieldset className={styles.fieldset}>
+                <legend className={styles.legend}>Dice mode</legend>
+                <div className={styles.radioRow}>
+                  <label className={styles.optionLabel}>
+                    <input
+                      type="radio"
+                      name="setup-dice-mode"
+                      value="built-in"
+                      checked={setupState.diceMode === "built-in"}
+                      onChange={() => handleDiceModeChange("built-in")}
+                    />
+                    <span>Built-in</span>
+                  </label>
+                  <label className={styles.optionLabel}>
+                    <input
+                      type="radio"
+                      name="setup-dice-mode"
+                      value="manual"
+                      checked={setupState.diceMode === "manual"}
+                      onChange={() => handleDiceModeChange("manual")}
+                    />
+                    <span>Manual input</span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset className={styles.fieldset}>
+                <legend className={styles.legend}>Rounds</legend>
+                <div className={styles.radioRow}>
+                  {ROUND_COUNT_PRESETS.map((preset) => (
+                    <label key={preset} className={styles.optionLabel}>
+                      <input
+                        type="radio"
+                        name="setup-round-count"
+                        value={preset}
+                        checked={setupState.roundCountOption === preset}
+                        onChange={() => handleRoundCountOptionChange(preset)}
+                      />
+                      <span>{preset} rounds</span>
+                    </label>
+                  ))}
+                  <label className={styles.optionLabel}>
+                    <input
+                      type="radio"
+                      name="setup-round-count"
+                      value={CUSTOM_ROUND_COUNT}
+                      checked={
+                        setupState.roundCountOption === CUSTOM_ROUND_COUNT
+                      }
+                      onChange={() =>
+                        handleRoundCountOptionChange(CUSTOM_ROUND_COUNT)
+                      }
+                    />
+                    <span>Custom</span>
+                  </label>
+                </div>
+                <label
+                  className={styles.label}
+                  htmlFor="setup-custom-round-count"
+                >
+                  Custom round count
+                </label>
+                <input
+                  id="setup-custom-round-count"
+                  className={styles.input}
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={setupState.customRoundCount}
+                  disabled={setupState.roundCountOption !== CUSTOM_ROUND_COUNT}
+                  onChange={(event) =>
+                    handleCustomRoundCountChange(event.target.value)
+                  }
+                  aria-invalid={Boolean(setupValidation.roundCountError)}
+                  aria-describedby={
+                    setupValidation.roundCountError
+                      ? "setup-custom-round-count-error"
+                      : undefined
+                  }
+                />
+                {setupValidation.roundCountError && (
+                  <p
+                    id="setup-custom-round-count-error"
+                    className={styles.errorText}
+                    role="alert"
+                  >
+                    {setupValidation.roundCountError}
+                  </p>
+                )}
+              </fieldset>
+
               <div className={styles.actionRow}>
                 <button
-                  className={buildButtonClassNames(styles.button, styles.primaryButton)}
+                  className={buildButtonClassNames(
+                    styles.button,
+                    styles.primaryButton,
+                  )}
                   type="submit"
                   disabled={!setupValidation.isValid}
                 >
@@ -691,9 +895,9 @@ export default function AppShell() {
               manualDieTwoValue={manualDieTwoValue}
               onRoll={handleRoll}
               onManualDieInputChange={handleManualDieInputChange}
-              onBankActivePlayer={handleBankActivePlayer}
               onBankPlayer={handleBankPlayer}
-              onAdvanceTurn={handleAdvanceTurn}
+              onOpenSettings={() => setIsSettingsOpen(true)}
+              isSettingsOpen={isSettingsOpen}
             />
           )}
         </section>
@@ -708,35 +912,98 @@ export default function AppShell() {
           </h2>
           {gameState && (
             <>
-              <p className={styles.sectionCopy}>
-                {winnerNames.length > 1
-                  ? `Winners: ${winnerNames.join(", ")}`
-                  : `Winner: ${winnerNames[0] ?? "No winner"}`}
-              </p>
-              <p className={styles.sectionCopy}>
-                All {gameState.settings.roundCount} rounds are complete.
-              </p>
               <ol className={styles.scoreboard} aria-label="Final scoreboard">
-                {gameState.players.map((player) => (
-                  <li key={player.id} className={styles.playerRow}>
-                    <span className={styles.playerName}>{player.name}</span>
-                    <span className={styles.playerScore}>{player.score}</span>
-                  </li>
-                ))}
+                {gameState.players.map((player) => {
+                  const isWinner = winnerIdSet.has(player.id);
+
+                  return (
+                    <li
+                      key={player.id}
+                      className={buildButtonClassNames(
+                        styles.playerRow,
+                        isWinner ? styles.playerRowWinner : "",
+                      )}
+                    >
+                      <div className={styles.playerNameRow}>
+                        <span className={styles.playerName}>
+                          {player.name}{" "}
+                        </span>
+                        {isWinner && (
+                          <span className={styles.winnerBadge}>
+                            🏆
+                            <span>Winner</span>
+                          </span>
+                        )}
+                      </div>
+                      <span className={styles.playerScore}>{player.score}</span>
+                    </li>
+                  );
+                })}
               </ol>
             </>
           )}
           <div className={styles.actionRow}>
             <button
-              className={buildButtonClassNames(styles.button, styles.primaryButton)}
+              className={buildButtonClassNames(
+                styles.button,
+                styles.primaryButton,
+              )}
               type="button"
               onClick={handlePlayAgain}
             >
               Play Again
             </button>
+            <button
+              className={buildButtonClassNames(
+                styles.button,
+                styles.secondaryButton,
+              )}
+              type="button"
+              onClick={handleEditNextGameSettings}
+            >
+              Change Settings for Next Game
+            </button>
           </div>
         </section>
       </div>
+
+      {isSettingsOpen && (
+        <div
+          className={styles.settingsModalBackdrop}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsSettingsOpen(false);
+            }
+          }}
+        >
+          <div
+            id="settings-modal"
+            className={styles.settingsModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-modal-heading"
+          >
+            <button
+              className={styles.settingsModalCloseButton}
+              type="button"
+              onClick={() => setIsSettingsOpen(false)}
+              aria-label="Close settings"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <SettingsPanel
+              context={activeScreen === "setup" ? "setup" : "gameplay"}
+              isOpen
+              headingId="settings-modal-heading"
+              isAudioMuted={isAudioMuted}
+              theme={activeTheme}
+              onThemeChange={handleThemeChange}
+              onToggleAudioMuted={handleToggleAudioMuted}
+              onResetSavedGame={hasSavedGame ? handleResetSavedGame : undefined}
+            />
+          </div>
+        </div>
+      )}
     </main>
   );
 }

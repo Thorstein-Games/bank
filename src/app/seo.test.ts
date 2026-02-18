@@ -2,7 +2,7 @@ import { metadata } from "./layout";
 import robots from "./robots";
 import sitemap from "./sitemap";
 
-const TARGET_PHRASE = "Play bank game online";
+const TARGET_PHRASE = "Play Bank Dice Game Online";
 
 describe("SEO metadata", () => {
   it("starts the title with the target phrase and includes canonical metadata", () => {
@@ -24,10 +24,10 @@ describe("SEO metadata", () => {
   it("defines Open Graph and Twitter share metadata", () => {
     expect(metadata.openGraph).toMatchObject({
       type: "website",
-      url: "/"
+      url: "/",
     });
     expect(metadata.twitter).toMatchObject({
-      card: "summary"
+      card: "summary",
     });
   });
 
@@ -37,13 +37,13 @@ describe("SEO metadata", () => {
 
     expect(robotsConfig.rules).toEqual({
       userAgent: "*",
-      allow: "/"
+      allow: "/",
     });
     expect(robotsConfig.sitemap).toContain("/sitemap.xml");
     expect(sitemapEntries).toContainEqual(
       expect.objectContaining({
-        url: expect.stringMatching(/^https?:\/\/.+/)
-      })
+        url: expect.stringMatching(/^https?:\/\/.+/),
+      }),
     );
   });
 });

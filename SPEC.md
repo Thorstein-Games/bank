@@ -41,7 +41,9 @@ Each turn:
 
 1. Player rolls dice.
 2. Dice result updates the communal bank.
-3. After the turn, players may choose to bank.
+3. After the turn, players may choose to bank by selecting a player card in the scoreboard.
+4. Turn auto-advances shortly after a roll resolves.
+5. If the active player banks, turn advances immediately to the next player still in the round.
 
 If a player banks, they are out for the remainder of that round.
 
@@ -85,7 +87,8 @@ If both dice show the same value:
 
 After each player's turn:
 
-- Any player still active in the round may choose to **bank**.
+- The scoreboard is always visible during gameplay.
+- Any player still active in the round may choose to **bank** by selecting their scoreboard card.
 - Banking:
   - Adds the **current communal Bank Total** to their score.
   - Ends their participation in the round.
@@ -186,22 +189,26 @@ If reload occurs mid-roll, rolled values are stored and animation skipped.
 
 - Player list and scores visible.
 - Current player highlighted.
-- Communal bank total visible.
+- Round total shown as the most prominent in-game element.
 - Banked players marked.
 - Buttons:
-  - Roll
-  - Bank
   - Settings
   - Play Again (after game end)
+  - Change Settings for Next Game (after game end)
+- Dice tray is clickable and triggers roll actions.
+- During gameplay, turns auto-advance to the next player shortly after a roll resolves.
+- During gameplay, if the active player banks, turn immediately moves to the next in-round player.
+- During gameplay, player bank actions stay visible and can be used whenever communal bank is above 0.
 
-Settings controls are visible during setup and hidden during active gameplay.
+Settings trigger sits at the top-right of the Setup panel and at the top-right of the Gameplay panel.
 
-Bank button disabled before rolling.
+Settings controls open in a modal dialog from either trigger.
 
 ### Layout
 
 - Mobile-first responsive design.
 - Desktop layout supported.
+- Scoreboard uses a 2-column grid on mobile and a 3-column grid on desktop.
 
 ---
 
@@ -219,9 +226,10 @@ Bank button disabled before rolling.
 Sound effects required:
 
 - Dice rolling sound
-- Banking confirmation sound
+- Money chime when banking a player from the scoreboard
 
 Audio should respect user interaction policies and optional mute control.
+Mute control is available from the settings panel.
 
 ---
 
@@ -241,6 +249,8 @@ Minimum accessibility support:
 - Default theme uses system preference (`prefers-color-scheme`).
 - User may override with Light or Dark mode.
 - Preference stored in localStorage.
+- Surface styling should favor flat, token-based fills over multi-stop gradients.
+- Dark mode must preserve contrast for dice pips and status badges.
 
 ---
 
@@ -248,6 +258,7 @@ Minimum accessibility support:
 
 Settings must include:
 
+- Mute / unmute audio control
 - Theme selection
 - Dice mode selection
 - Round count configuration
@@ -256,8 +267,6 @@ Settings must include:
 
 Rules are read-only.
 
-Gameplay screen does not expose settings controls.
-
 ---
 
 ## 17. End-of-Game Flow
@@ -265,14 +274,20 @@ Gameplay screen does not expose settings controls.
 After final round:
 
 - Winners displayed.
+- Winners are marked with a trophy badge on the final scoreboard.
 - Final scoreboard shown.
-- Confetti burst animation plays once.
-- “Play Again” button available.
+- Side-cannon confetti burst animation plays once.
+- “Play Again” and “Change Settings for Next Game” buttons available.
 
 Play Again:
 
 - Resets scores and rounds.
 - Keeps player list.
+
+Change Settings for Next Game:
+
+- Returns to setup with player names and previous game settings prefilled.
+- Allows editing setup values before starting again.
 
 ---
 
@@ -300,9 +315,9 @@ Play Again:
 
 ## 20. SEO Requirements
 
-The site must be optimized for the target phrase: **"Play bank game online"**.
+The site must be optimized for the target phrase: **"Play Bank Dice Game Online"**.
 
-- Primary SEO target keyword: `Play bank game online`.
+- Primary SEO target keyword: `Play Bank Dice Game Online`.
 - Page title must include the exact phrase near the start.
 - Meta description must include the exact phrase naturally once.
 - Main page `h1` must include the exact phrase.

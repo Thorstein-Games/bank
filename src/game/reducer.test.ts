@@ -170,7 +170,7 @@ describe("gameReducer - banking and turn flow", () => {
       rolledState.players[0].id,
       rolledState.players[2].id
     ]);
-    expect(afterSecondBank.turn.hasRolledThisTurn).toBe(true);
+    expect(afterSecondBank.turn.hasRolledThisTurn).toBe(false);
   });
 
   it("skips banked players when advancing turn order", () => {
@@ -188,6 +188,47 @@ describe("gameReducer - banking and turn flow", () => {
       type: "advance-turn"
     });
 
+    expect(nextState.turn.activePlayerIndex).toBe(2);
+    expect(nextState.turn.hasRolledThisTurn).toBe(false);
+  });
+
+  it("allows banking after turn advances when communal bank is non-zero", () => {
+    const rolledState = gameReducer(createGameState(["A", "B", "C"]), {
+      type: "resolve-roll",
+      dieOne: 2,
+      dieTwo: 2
+    });
+    const advancedState = gameReducer(rolledState, {
+      type: "advance-turn"
+    });
+
+    const nextState = gameReducer(advancedState, {
+      type: "bank-player",
+      playerId: advancedState.players[0].id
+    });
+
+    expect(nextState.players[0].score).toBe(4);
+    expect(nextState.players[0].hasBankedThisRound).toBe(true);
+    expect(nextState.round.bankedPlayerIds).toEqual([advancedState.players[0].id]);
+  });
+
+  it("advances turn when active player banks without rolling", () => {
+    const rolledState = gameReducer(createGameState(["A", "B", "C"]), {
+      type: "resolve-roll",
+      dieOne: 2,
+      dieTwo: 3
+    });
+    const advancedState = gameReducer(rolledState, {
+      type: "advance-turn"
+    });
+
+    const nextState = gameReducer(advancedState, {
+      type: "bank-player",
+      playerId: advancedState.players[1].id
+    });
+
+    expect(nextState.players[1].score).toBe(5);
+    expect(nextState.players[1].hasBankedThisRound).toBe(true);
     expect(nextState.turn.activePlayerIndex).toBe(2);
     expect(nextState.turn.hasRolledThisTurn).toBe(false);
   });

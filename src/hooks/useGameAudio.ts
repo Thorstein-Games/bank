@@ -48,7 +48,7 @@ function scheduleTone(context: AudioContext, tone: AudioTone) {
 
 export default function useGameAudio({
   isMuted,
-  hasUserInteracted
+  hasUserInteracted,
 }: UseGameAudioParams): UseGameAudioResult {
   const audioContextRef = useRef<AudioContext | null>(null);
 
@@ -74,7 +74,7 @@ export default function useGameAudio({
 
   const canPlayAudio = useCallback(
     () => hasUserInteracted && !isMuted,
-    [hasUserInteracted, isMuted]
+    [hasUserInteracted, isMuted],
   );
 
   const playRollSound = useCallback(() => {
@@ -97,7 +97,7 @@ export default function useGameAudio({
       startFrequency: 220,
       endFrequency: 340,
       gain: 0.045,
-      type: "triangle"
+      type: "triangle",
     });
     scheduleTone(audioContext, {
       startOffsetMs: 85,
@@ -105,7 +105,7 @@ export default function useGameAudio({
       startFrequency: 260,
       endFrequency: 420,
       gain: 0.038,
-      type: "triangle"
+      type: "triangle",
     });
   }, [canPlayAudio, getAudioContext]);
 
@@ -128,14 +128,14 @@ export default function useGameAudio({
       durationMs: 100,
       startFrequency: 430,
       gain: 0.045,
-      type: "sine"
+      type: "sine",
     });
     scheduleTone(audioContext, {
       startOffsetMs: 110,
       durationMs: 180,
       startFrequency: 620,
       gain: 0.052,
-      type: "sine"
+      type: "sine",
     });
   }, [canPlayAudio, getAudioContext]);
 
@@ -145,11 +145,11 @@ export default function useGameAudio({
         void audioContextRef.current.close();
       }
     },
-    []
+    [],
   );
 
   return {
     playRollSound,
-    playBankSound
+    playBankSound,
   };
 }

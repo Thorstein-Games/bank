@@ -101,7 +101,7 @@ function handleResolveRoll(
 }
 
 function handleBankPlayer(state: GameState, playerId: string): GameState {
-  if (!state.turn.hasRolledThisTurn) {
+  if (state.round.bankTotal < 1) {
     return state;
   }
 
@@ -137,6 +137,25 @@ function handleBankPlayer(state: GameState, playerId: string): GameState {
 
   if (allPlayersBanked(nextPlayers)) {
     return concludeRound(nextState);
+  }
+
+  if (playerIndex === state.turn.activePlayerIndex) {
+    const nextActivePlayerIndex = findNextActivePlayerIndex(
+      nextPlayers,
+      state.turn.activePlayerIndex
+    );
+    if (nextActivePlayerIndex === null) {
+      return concludeRound(nextState);
+    }
+
+    return {
+      ...nextState,
+      turn: {
+        ...nextState.turn,
+        activePlayerIndex: nextActivePlayerIndex,
+        hasRolledThisTurn: false
+      }
+    };
   }
 
   return nextState;
