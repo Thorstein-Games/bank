@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://thorstein-games.github.io/bank";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://thorsteingames.com/bank";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [

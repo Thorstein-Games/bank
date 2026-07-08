@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://thorstein-games.github.io/bank";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://thorsteingames.com/bank";
 const PAGE_TITLE = "Play Bank Dice Game Online";
 const PAGE_DESCRIPTION =
   "Play Bank Dice Game Online in a multiplayer dice challenge where players grow a communal bank and choose when to lock in points.";
