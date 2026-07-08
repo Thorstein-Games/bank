@@ -132,7 +132,6 @@ export function buildRoundHistoryStats(
 export function buildEndGameStats(
   roundHistory: RoundRollHistory[],
 ): EndGameStats {
-  console.log("roundHistory", roundHistory);
   const playedRounds = roundHistory.filter((round) => round.entries.length > 0);
   const roundHistoryStats = buildRoundHistoryStats(playedRounds);
   const allEntries = roundHistoryStats.flatMap((round) => round.entries);

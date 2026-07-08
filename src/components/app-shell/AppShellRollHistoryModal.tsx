@@ -71,7 +71,8 @@ export default function AppShellRollHistoryModal({
                 ) : (
                   <>
                     <p className={styles.rollHistorySummary}>
-                      Doubles {roundHistory.doublesCount} | Sevens{" "}
+                      Busts {roundHistory.bustCount} | Doubles{" "}
+                      {roundHistory.doublesCount} | Sevens{" "}
                       {roundHistory.sevenCount} | Max bank $
                       {roundHistory.maxBankAfterRoll}
                     </p>
