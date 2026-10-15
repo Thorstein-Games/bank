@@ -5,6 +5,7 @@ const LINKS = [
   { label: "Tier Ranker", href: "https://thorsteingames.com/tier-ranker" },
   { label: "Bracket Maker", href: "https://thorsteingames.com/bracket-maker" },
   { label: "Contact", href: "https://thorsteingames.com/contact" },
+  { label: "Privacy", href: "https://thorsteingames.com/privacy" },
 ];
 
 export default function SiteFooter() {
