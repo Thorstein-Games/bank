@@ -1,0 +1,186 @@
+.howTo {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 8px 16px 40px;
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+
+.howTo h2,
+.howTo h3,
+.howTo h4,
+.howTo strong {
+  color: var(--color-text);
+}
+
+.howTo h2 {
+  margin: 0 0 10px;
+  font-size: 1.5rem;
+}
+
+.howTo h3 {
+  margin: 28px 0 10px;
+  font-size: 1.15rem;
+}
+
+.howTo h4 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.lede {
+  margin: 0 0 14px;
+}
+
+.steps {
+  margin: 0;
+  padding-left: 1.3em;
+}
+
+.steps li {
+  margin-bottom: 8px;
+}
+
+.steps li::marker {
+  color: var(--color-accent-strong);
+  font-weight: 700;
+}
+
+.ruleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.ruleGrid > div {
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.ruleGrid ul {
+  margin: 0;
+  padding-left: 1.1em;
+}
+
+.footer {
+  border-top: 1px solid var(--color-border);
+  padding: 24px 16px 32px;
+  text-align: center;
+}
+
+.footerNav {
+  max-width: 1115px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.footerLinks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.footerLinks a {
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.footerLinks a:hover {
+  color: var(--color-text);
+}
+
+.copy {
+  margin: 16px 0 0;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.moreGames {
+  position: relative;
+  overflow: hidden;
+  padding: 8px 24px;
+  border-radius: 8px;
+  background: #9333ea;
+  color: #fff;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.moreGames:hover {
+  background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3, #ff0000);
+  background-size: 200% 200%;
+  animation: rainbow 2s linear infinite, wobble 0.5s ease-in-out;
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.5), 0 0 40px rgba(0, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.moreGames:hover::before,
+.moreGames:hover::after {
+  content: "✨";
+  position: absolute;
+  animation: sparkle 0.6s ease-in-out infinite;
+}
+
+.moreGames:hover::before {
+  left: 6px;
+}
+
+.moreGames:hover::after {
+  right: 6px;
+  animation-delay: 0.3s;
+}
+
+@keyframes rainbow {
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes wobble {
+  25% {
+    transform: rotate(-2deg) scale(1.05);
+  }
+  75% {
+    transform: rotate(2deg) scale(1.05);
+  }
+}
+
+@keyframes sparkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moreGames,
+  .moreGames::before,
+  .moreGames::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .footerNav {
+    justify-content: center;
+  }
+}
