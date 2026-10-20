@@ -1,7 +1,8 @@
 .page {
   width: 100%;
   max-width: 1115px;
-  min-height: 100dvh;
+  /* Under the 40px shared bar, so the shared footer starts below the fold. */
+  min-height: calc(100dvh - 40px);
   margin: 0 auto;
   padding: 18px 12px 32px;
   display: grid;
@@ -1423,4 +1424,12 @@
   .button {
     transition: none;
   }
+}
+
+/* "Play a different game" tiles (tg-bar.js) under the final results. */
+.moreGames {
+  display: block;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border);
 }

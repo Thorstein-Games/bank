@@ -160,6 +160,7 @@ export default function AppShellEndGameScreen({
           Change Settings for Next Game
         </button>
       </div>
+      <tg-more-games game="bank" className={styles.moreGames}></tg-more-games>
     </section>
   );
 }

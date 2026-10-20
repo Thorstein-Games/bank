@@ -32,3 +32,11 @@ h4 {
 button {
   font: inherit;
 }
+
+/* The shared Thorstein Games bar is 40px; hold its space before tg-bar.js
+   loads. */
+tg-bar:not(:defined) {
+  display: block;
+  height: 40px;
+  background: #0b0b0e;
+}

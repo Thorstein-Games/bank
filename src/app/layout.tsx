@@ -72,6 +72,11 @@ export const metadata: Metadata = {
   },
 };
 
+// Shared Thorstein Games bar and footer (see CLAUDE.md). Set to "" to keep
+// it from loading (e.g. in tests).
+const TG_BAR_SRC =
+  process.env.NEXT_PUBLIC_TG_BAR_SRC ?? "https://thorsteingames.com/tg-bar.js";
+
 interface RootLayoutProps {
   children: ReactNode;
 }
@@ -88,6 +93,8 @@ export default function RootLayout({ children }: RootLayoutProps) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
         />
+        {TG_BAR_SRC && <script src={TG_BAR_SRC} async />}
+        <tg-bar game="bank"></tg-bar>
         {children}
       </body>
     </html>

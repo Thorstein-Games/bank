@@ -18,15 +18,8 @@ describe("HowToPlay", () => {
 });
 
 describe("SiteFooter", () => {
-  it("links back to Thorstein Games", () => {
-    render(<SiteFooter />);
-    expect(screen.getByRole("link", { name: "More Games" })).toHaveAttribute(
-      "href",
-      "https://thorsteingames.com/",
-    );
-    expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute(
-      "href",
-      "https://thorsteingames.com/",
-    );
+  it("renders the shared Thorstein Games footer for Bank", () => {
+    const { container } = render(<SiteFooter />);
+    expect(container.querySelector("tg-footer")).toHaveAttribute("game", "bank");
   });
 });
