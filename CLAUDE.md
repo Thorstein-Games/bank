@@ -10,3 +10,4 @@ Bank: push-your-luck dice game. Next.js 14 (App Router) static export, served at
 
 - The bar is always 40px. `globals.css` holds that space before the script loads (`tg-bar:not(:defined)`), and the game's `.page` is `100dvh - 40px` tall at least, so the footer starts below the fold. Keep those in step.
 - `NEXT_PUBLIC_TG_BAR_SRC` overrides the script URL (`""` turns it off, e.g. for tests).
+- Ads (`<tg-ad>`, rules and options in the thorstein-games-website CLAUDE.md): `SiteFooter` puts a `banner` above the footer, and the end-of-game screen a `box` under "Play a different game". Never during a game. Check placements with `?tgads=preview`.

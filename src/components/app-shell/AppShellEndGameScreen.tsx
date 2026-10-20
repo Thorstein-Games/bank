@@ -161,6 +161,7 @@ export default function AppShellEndGameScreen({
         </button>
       </div>
       <tg-more-games game="bank" className={styles.moreGames}></tg-more-games>
+      <tg-ad game="bank" format="box" className={styles.endAd}></tg-ad>
     </section>
   );
 }

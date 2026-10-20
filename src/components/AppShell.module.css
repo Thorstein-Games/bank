@@ -1427,6 +1427,11 @@
 }
 
 /* "Play a different game" tiles (tg-bar.js) under the final results. */
+.endAd {
+  display: block;
+  margin-top: 22px;
+}
+
 .moreGames {
   display: block;
   margin-top: 22px;
