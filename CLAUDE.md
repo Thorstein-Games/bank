@@ -2,7 +2,7 @@
 
 @AGENTS.md
 
-Bank: push-your-luck dice game. Next.js 14 (App Router) static export, served at thorsteingames.com/bank (GitHub Pages, base path `/bank` in production). `npx tsc --noEmit`, `npm run lint` and `npm test` (jest) before committing.
+Bank: push-your-luck dice game. Next.js 14 (App Router) static export, served at thorsteingames.com/bank (GitHub Pages, base path `/bank` in production). `npx tsc --noEmit`, `npm run lint`, `npm test` (jest) and `npm run build && npm run test:e2e` (Playwright against `out/`, see README "Testing") before committing. e2e stubs `tg-bar.js` and the confetti CDN script; a new external request will fail it until stubbed in `e2e/fixtures.ts`.
 
 ## Shared Thorstein Games bar and footer
 

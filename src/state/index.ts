@@ -71,8 +71,14 @@ export function resolveRoundCount(
     return roundCountOption;
   }
 
-  const parsedValue = Number.parseInt(customRoundCount, 10);
-  if (!Number.isInteger(parsedValue) || parsedValue < MIN_CUSTOM_ROUNDS) {
+  // Whole numbers only: parseInt would quietly turn "2.5" into 2.
+  const trimmedValue = customRoundCount.trim();
+  if (!/^\d+$/.test(trimmedValue)) {
+    return null;
+  }
+
+  const parsedValue = Number(trimmedValue);
+  if (!Number.isSafeInteger(parsedValue) || parsedValue < MIN_CUSTOM_ROUNDS) {
     return null;
   }
 

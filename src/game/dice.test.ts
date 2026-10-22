@@ -48,3 +48,32 @@ describe("rollDiceWithCrypto", () => {
     );
   });
 });
+
+describe("dice fairness", () => {
+  it("maps every accepted byte evenly onto the six faces", () => {
+    const counts = new Map<number, number>();
+    for (let byte = 0; byte <= 255; byte += 1) {
+      const face = normalizeRandomByteToDieValue(byte);
+      if (face !== null) {
+        counts.set(face, (counts.get(face) ?? 0) + 1);
+      }
+    }
+    expect([...counts.keys()].sort()).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(new Set(counts.values())).toEqual(new Set([42]));
+  });
+
+  it("only produces faces 1-6 from the real crypto source", () => {
+    const { webcrypto } = jest.requireActual("crypto") as typeof import("crypto");
+    const seen = new Set<number>();
+    for (let index = 0; index < 500; index += 1) {
+      const roll = rollDiceWithCrypto(webcrypto as unknown as Crypto);
+      for (const value of [roll.dieOne, roll.dieTwo]) {
+        expect(Number.isInteger(value)).toBe(true);
+        expect(value).toBeGreaterThanOrEqual(1);
+        expect(value).toBeLessThanOrEqual(6);
+        seen.add(value);
+      }
+    }
+    expect(seen.size).toBe(6);
+  });
+});

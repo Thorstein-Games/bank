@@ -16,4 +16,14 @@ Live URL:
 
 - Dev server: `npm run dev`
 - Production static build: `npm run build`
-- Tests: `npm test`
+- Unit tests (Jest): `npm test`
+- End-to-end tests (Playwright): `npm run build && npm run test:e2e`
+
+## Testing
+
+- **Unit (Jest, `src/**/*.test.ts(x)`)**: game rules against `SPEC.md` (`src/game/reducer*.test.ts`), dice, setup validation, save/restore and corrupt-save handling, end-of-game stats, SEO metadata and components.
+- **E2E (Playwright, `e2e/*.spec.ts`)**: runs against the production static export in `out/`, served under `/bank` by `e2e/serve.mjs`, at desktop (1280px) and phone (390px) widths. Covers setup validation, full games with fixed dice (built-in and manual mode), banking, busts, the end screen, reload/resume, settings (rules, theme, mute), head tags and asset paths. Every test fails on console errors.
+  - Dice are fixed by stubbing `crypto.getRandomValues` (`setDice()` in `e2e/fixtures.ts`).
+  - Network leaving the local server is stubbed: `tg-bar.js` is empty and canvas-confetti is a counter. `e2e/footer.spec.ts` runs the real `tg-bar.js` (live, or `TG_BAR_JS_FILE=../thorstein-games-website/public/tg-bar.js`) and skips if it can't get it.
+  - First run: `npx playwright install chromium`. Reports land in `playwright-report/` and `test-results/` (git-ignored).
+- **CI**: `.github/workflows/test.yml` runs lint, typecheck, Jest, build and e2e on pull requests and non-main pushes. `deploy-pages.yml` runs the same before uploading, so `main` never deploys a failing build.

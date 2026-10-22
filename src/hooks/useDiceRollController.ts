@@ -50,7 +50,7 @@ interface UseDiceRollControllerResult {
   handleManualOutcomeSelect: (outcome: ManualOutcome) => void;
 }
 
-function getDiceFromOutcome(outcome: ManualOutcome): {
+export function getDiceFromOutcome(outcome: ManualOutcome): {
   dieOne: number;
   dieTwo: number;
 } {
@@ -74,7 +74,7 @@ function getDiceFromOutcome(outcome: ManualOutcome): {
   return combinations[outcome] || { dieOne: 1, dieTwo: 1 };
 }
 
-function buildRollResolutionFeedback(
+export function buildRollResolutionFeedback(
   gameState: GameState,
   diceValues: DiceValues,
 ): RollResolutionFeedback {

@@ -35,3 +35,10 @@ Avoid:
 - generic component grids
 - predictable layouts
 - too many gradients
+
+## Testing
+
+- Gate: `npm run lint`, `npx tsc --noEmit`, `npm test` (Jest), `npm run build && npm run test:e2e` (Playwright vs `out/` under `/bank`, desktop + 390px phone).
+- Rule changes: update `SPEC.md` + `src/game/reducer.spec-rules.test.ts`.
+- UI changes: keep `e2e/` passing; tests use roles/labels, `setDice()` for fixed rolls, no sleeps. Console errors fail e2e.
+- Details: README "Testing".
